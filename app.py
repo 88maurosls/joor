@@ -48,7 +48,9 @@ def extract_numeric_part(col):
                 numeric_part += char
         return numeric_part
     else:
+        print("Errore: Etichetta di colonna non è una stringa:", col)
         return ''
+
 
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
