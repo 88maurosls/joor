@@ -71,8 +71,12 @@ def save_combined_data_to_excel(cleaned_data):
     size_cols = combined_df.columns[country_of_origin_idx + 1:sugg_retail_idx].tolist()
     fixed_cols_after = combined_df.columns[sugg_retail_idx:].tolist()
 
+    # Escludi la riga "Total"
+    if "Total:" in combined_df.values:
+        combined_df = combined_df[combined_df != "Total:"]
+
     # Sort size columns based on numeric part with weight for potential non-numeric characters
-    size_cols.sort(key=lambda col: (extract_numeric_part(str(col)), len(str(col))), reverse=False)
+    size_cols.sort(key=lambda col: extract_numeric_part(str(col)), reverse=True)
 
     # Reorder the DataFrame
     ordered_columns = fixed_cols_before + size_cols + fixed_cols_after
@@ -84,6 +88,7 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
     return output_combined
+
 
 
 # Interfaccia Streamlit
