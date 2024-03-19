@@ -60,19 +60,16 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
     # Ottiene gli indici delle colonne chiave
-    try:
-        index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
-        index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
-    except KeyError as e:
-        raise KeyError(f"Colonna non trovata: {e}")
+    index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
+    index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
 
     # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
     fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
     size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
     fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
 
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
+    # Ordinamento delle colonne delle taglie
+    size_columns.sort(key=lambda col: extract_numeric_part(col) if col.isdigit() else float('inf'))
 
     # Riorganizza il DataFrame con l'ordine desiderato delle colonne
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
