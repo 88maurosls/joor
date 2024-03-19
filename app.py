@@ -52,7 +52,7 @@ def extract_numeric_part(col):
         # In caso di qualsiasi errore, restituisci un numero molto alto per posizionare la colonna alla fine
         return float('inf')
 
-def save_combined_data_to_excel(cleaned_data):
+def save_combined_data_to_excel(cleaned_data, original_file_name):
     combined_df = pd.DataFrame()
 
     for sheet_name, data_df in cleaned_data.items():
@@ -78,26 +78,33 @@ def save_combined_data_to_excel(cleaned_data):
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
     combined_df = combined_df[ordered_columns]
 
+    # Costruzione del nome del file di output basato sul nome originale
+    base_name, extension = os.path.splitext(original_file_name)
+    output_file_name = f"{base_name}_combined{extension}"
+
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
-    return output_combined
+
+    # Restituisce sia il file di output (BytesIO object) che il nuovo nome del file
+    return output_combined, output_file_name
 
 
 # Interfaccia Streamlit
 st.title('Unione e salvataggio dati prodotto da Excel')
 
+# Utilizzo della funzione modificata
 uploaded_file = st.file_uploader("Carica il tuo file Excel", type=["xlsx"])
 if uploaded_file is not None:
     cleaned_data = clean_and_extract_product_data(uploaded_file)
     
     if st.button('Unisci e Salva Dati'):
-        output_combined = save_combined_data_to_excel(cleaned_data)
+        output_combined, output_file_name = save_combined_data_to_excel(cleaned_data, uploaded_file.name)
         st.download_button(
             label="Scarica Dati Uniti come Excel",
             data=output_combined,
-            file_name="dati_uniti.xlsx",
+            file_name=output_file_name,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
