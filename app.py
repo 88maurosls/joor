@@ -34,7 +34,6 @@ def clean_and_extract_product_data(input_file):
     return cleaned_data
 
 def is_numeric_column(col):
-    # Controlla se la colonna è numericamente ordinabile, escludendo colonne non destinate all'ordinamento
     try:
         float(col)
         return True
@@ -42,49 +41,42 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    # Assicurati che col sia una stringa
-    col_str = str(col)
-    try:
-        # Estrai solo i numeri (e il punto per i decimali) dall'etichetta della colonna
-        numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
-        return int(numeric_part)
-    except ValueError:
-        # In caso di qualsiasi errore, restituisci un numero molto alto per posizionare la colonna alla fine
-        return float('inf')
+    if isinstance(col, str):  # Controlla se col è una stringa
+        try:
+            # Estrae solo i numeri dall'etichetta della colonna
+            numeric_part = ''.join(filter(lambda x: x.isdigit() or x == '.' or x == '-', col))
+            return float(numeric_part) if numeric_part else float('inf')  # Restituisce float('inf') se non ci sono numeri
+        except ValueError:
+            return float('inf')  # Restituisce float('inf') in caso di errore
+    else:
+        return float('inf')  # Restituisce float('inf') se col non è una stringa
+
+
 
 def save_combined_data_to_excel(cleaned_data):
+    # Creazione di un nuovo DataFrame con l'intestazione desiderata
     combined_df = pd.DataFrame()
 
+    # Unione dei dati dei vari fogli
     for sheet_name, data_df in cleaned_data.items():
-        data_df['Sheet'] = sheet_name
+        # Aggiunta dei dati al DataFrame combinato
+        data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
+    
+    # Ordinamento delle colonne numericamente
+    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
+    numeric_cols.sort(key=lambda x: extract_numeric_part(x))
 
-    # Ottiene gli indici delle colonne chiave
-    try:
-        index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
-        index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
-    except KeyError as e:
-        raise KeyError(f"Colonna non trovata: {e}")
-
-    # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
-    fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
-    fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
-
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
-
-    # Riorganizza il DataFrame con l'ordine desiderato delle colonne
-    ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
-    combined_df = combined_df[ordered_columns]
+    # Concatenazione delle colonne non numeriche
+    non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
+    combined_df = combined_df[non_numeric_cols + numeric_cols]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False)
-    output_combined.seek(0)
+    output_combined.seek(0)  # Sposta il cursore all'inizio del file per il download
     return output_combined
-
 
 # Interfaccia Streamlit
 st.title('Unione e salvataggio dati prodotto da Excel')
@@ -101,3 +93,4 @@ if uploaded_file is not None:
             file_name="dati_uniti.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
