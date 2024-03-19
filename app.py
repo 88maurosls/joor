@@ -59,18 +59,22 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Identifica le colonne prima e dopo le taglie numeriche
+    # Identifica le colonne prima e dopo le taglie
     cols_before_sizes = combined_df.columns.tolist()[:combined_df.columns.get_loc("Country of Origin") + 1]
-    cols_after_sizes = combined_df.columns.tolist()[combined_df.columns.get_loc("Sugg. Retail (EUR)"):]
+    cols_after_sizes_inclusive = combined_df.columns.tolist()[combined_df.columns.get_loc("Sugg. Retail (EUR)"):]
 
     # Identifica le colonne delle taglie numeriche per l'ordinamento
-    size_cols = [col for col in combined_df.columns if col not in cols_before_sizes + cols_after_sizes and col.replace('.','').isdigit()]
+    size_cols = [col for col in combined_df.columns if col not in cols_before_sizes + cols_after_sizes_inclusive and col.replace('.','').isdigit()]
+
+    # Assicurati che 'ONE SIZE' sia inclusa nella posizione corretta se esiste
+    one_size_col = ['ONE SIZE'] if 'ONE SIZE' in combined_df.columns else []
 
     # Ordina le colonne delle taglie numeriche
     size_cols_sorted = sorted(size_cols, key=lambda x: float(x))
 
     # Ordina il DataFrame con le colonne nelle posizioni corrette
-    combined_df = combined_df[cols_before_sizes + size_cols_sorted + cols_after_sizes]
+    ordered_columns = cols_before_sizes + one_size_col + size_cols_sorted + cols_after_sizes_inclusive
+    combined_df = combined_df[ordered_columns]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
@@ -78,6 +82,7 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
     return output_combined
+
 
     
 # Interfaccia Streamlit
