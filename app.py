@@ -1,75 +1,81 @@
 import pandas as pd
 import streamlit as st
-from io import BytesIO
 
-def clean_and_extract_product_data(input_file):
-    xls = pd.ExcelFile(input_file)
-    all_data_frames = []
-    size_columns = set()
+def trova_indice_intestazione(df):
+    for index, row in df.iterrows():
+        for value in row:
+            if isinstance(value, str) and "Style Image" in value:
+                return index
+    raise ValueError("Intestazione non trovata.")
 
+def estrai_dati_excel(xls, sheet_name):
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+    header_index = trova_indice_intestazione(df)
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=header_index)
+    
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
+    if 'Country of Origin' in df.columns:
+        total_row_index = df[df['Country of Origin'].astype(str).str.contains("Total:", na=False)].index
+        if not total_row_index.empty:
+            df = df.iloc[:total_row_index[0]]
+    
+    taglie_columns = [col for col in df.columns if col not in [
+        "Style Image", "Style Name", "Style Number", "Color", 
+        "Color Code", "Color Comment", "Style Comment", 
+        "Materials", "Fabrication", "Country of Origin",
+        "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount", 
+        "Units", "Total (EUR)"
+    ]]
+    for col in taglie_columns:
+        df[col] = df[col].fillna(0)
+    
+    return df
+
+def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
+    xls = pd.ExcelFile(uploaded_file)
+    
+    colonne_fisse_prima = [
+        "Style Image", "Style Name", "Style Number", "Color", 
+        "Color Code", "Color Comment", "Style Comment", 
+        "Materials", "Fabrication", "Country of Origin"
+    ]
+    colonne_fisse_dopo = [
+        "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount", 
+        "Units", "Total (EUR)"
+    ]
+    
+    colonne_taglie = set()
+    
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
-        df.dropna(axis=1, how='all', inplace=True)
+        df = estrai_dati_excel(xls, sheet_name)
+        colonne_taglie.update(set(df.columns) - set(colonne_fisse_prima) - set(colonne_fisse_dopo))
 
-        start_index = end_index = None
-        for index, row in df.iterrows():
-            if start_index is None and "Style Name" in row.values:
-                start_index = index
-            elif "Total:" in row.values:
-                end_index = index
-                break
+    all_extracted_data = pd.concat([estrai_dati_excel(xls, sheet_name) for sheet_name in xls.sheet_names], ignore_index=True)
+    
+    ordine_completo_colonne = colonne_fisse_prima + sorted(list(colonne_taglie)) + colonne_fisse_dopo
 
-        if start_index is not None and end_index is not None:
-            df = df.iloc[start_index:end_index]
-            df.columns = df.iloc[0]  # Set headers
-            df = df[1:].reset_index(drop=True)
+    for col in colonne_taglie:
+        all_extracted_data[col] = all_extracted_data[col].fillna(0)
 
-            # Check if 'Country of Origin' and 'Sugg. Retail (EUR)' are in columns
-            if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
-                sizes_start = df.columns.get_loc('Country of Origin') + 1
-                sizes_end = df.columns.get_loc('Sugg. Retail (EUR)')
-                sizes = df.columns[sizes_start:sizes_end]
-                size_columns.update(sizes)
-                all_data_frames.append(df)
-            else:
-                st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
-        else:
-            st.warning(f"Start or end index not found in sheet: {sheet_name}")
+    all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
 
-    if not all_data_frames:
-        return pd.DataFrame()
-
-    # Prepare final DataFrame
-    final_columns = set(df for df in all_data_frames[0].columns)
-    for sizes in size_columns:
-        final_columns.add(sizes)
-    final_columns = list(final_columns)
-
-    # Concatenate DataFrames
-    final_df = pd.concat(all_data_frames, ignore_index=True)
-    final_df = final_df.reindex(columns=final_columns)
-
-    return final_df
-
-def save_to_excel(final_df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False)
-    output.seek(0)
-    return output
+    return all_extracted_data
 
 # Streamlit UI
-st.title('Excel Data Cleaning and Merging')
+st.title("Estrazione e Riordino Dati Excel")
 
-uploaded_file = st.file_uploader("Upload your Excel file", type="xlsx")
+uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
+
 if uploaded_file is not None:
-    final_df = clean_and_extract_product_data(uploaded_file)
-    
-    if not final_df.empty and st.button('Generate Cleaned Excel'):
-        output = save_to_excel(final_df)
-        st.download_button(
-            label="Download Cleaned Excel",
-            data=output,
-            file_name="cleaned_data.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+    all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
+    st.success("Dati estratti e riordinati con successo!")
+
+    # Converti il DataFrame in un file Excel per il download
+    towrite = io.BytesIO()
+    with pd.ExcelWriter(towrite, engine='xlsxwriter') as writer:
+        all_extracted_data.to_excel(writer, index=False)
+    towrite.seek(0)  # Reset del puntatore
+
+    # Crea un link per il download del file elaborato
+    st.download_button(label="Scarica Excel elaborato", data=towrite, file_name="dati_elaborati.xlsx", mime="application/vnd.ms-excel")
