@@ -24,12 +24,11 @@ def clean_and_extract_product_data(input_file):
             df.columns = df.iloc[0]  # Set headers
             df = df[1:].reset_index(drop=True)
 
-            # Check if 'Country of Origin' and 'Sugg. Retail (EUR)' are in columns
+            # Find all columns between 'Country of Origin' and 'Sugg. Retail (EUR)'
             if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
-                sizes_start = df.columns.get_loc('Country of Origin') + 1
-                sizes_end = df.columns.get_loc('Sugg. Retail (EUR)')
-                sizes = df.columns[sizes_start:sizes_end]
-                size_columns.update(sizes)
+                start_col_index = df.columns.get_loc('Country of Origin') + 1
+                end_col_index = df.columns.get_loc('Sugg. Retail (EUR)')
+                size_columns.update(df.columns[start_col_index:end_col_index])
                 all_data_frames.append(df)
             else:
                 st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
@@ -38,6 +37,19 @@ def clean_and_extract_product_data(input_file):
 
     if not all_data_frames:
         return pd.DataFrame()
+
+    # Prepare final DataFrame
+    final_columns = set(df for df in all_data_frames[0].columns)
+    for sizes in size_columns:
+        final_columns.add(sizes)
+    final_columns = list(final_columns)
+
+    # Concatenate DataFrames
+    final_df = pd.concat(all_data_frames, ignore_index=True)
+    final_df = final_df.reindex(columns=final_columns)
+
+    return final_df
+
 
     # Prepare final DataFrame
     final_columns = set(df for df in all_data_frames[0].columns)
