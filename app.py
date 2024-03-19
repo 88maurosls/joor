@@ -15,9 +15,9 @@ def clean_and_extract_product_data(input_file):
             country_of_origin_index = None
             sugg_retail_index = None
             for col_index, col in enumerate(df.columns):
-                if col.strip() == "Country of Origin":
+                if 'Country of Origin' in str(col):
                     country_of_origin_index = col_index
-                elif col.strip() == "Sugg. Retail (EUR)":
+                elif 'Sugg. Retail' in str(col):
                     sugg_retail_index = col_index
                 elif country_of_origin_index is not None and sugg_retail_index is not None:
                     break
