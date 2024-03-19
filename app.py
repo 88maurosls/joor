@@ -64,8 +64,15 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
 
     return all_extracted_data
 
-# Funzione per caricare le immagini dal file Excel utilizzando Pillow
-# Funzione per caricare le immagini dal DataFrame pandas utilizzando Pillow
+# Funzione per caricare il file Excel e restituire un DataFrame pandas
+def carica_file_excel(file_path):
+    try:
+        df = pd.read_excel(file_path)
+        return df
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante il caricamento del file Excel: {e}")
+        return None
+
 # Funzione per caricare le immagini dal DataFrame pandas utilizzando Pillow
 def carica_immagini_da_excel(dataframe):
     images = []
@@ -79,28 +86,25 @@ def carica_immagini_da_excel(dataframe):
                 st.warning(f"Impossibile caricare l'immagine dalla riga {index}: {e}")
     return images
 
-
-
 # Streamlit UI
 st.title("Tabulazione JOOR")
 
 uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
 if uploaded_file is not None:
-    all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
-    st.success("Dati estratti e riordinati con successo!")
+    # Carica il file Excel in un DataFrame pandas
+    all_extracted_data = carica_file_excel(uploaded_file)
 
-    # Carica le immagini dal file Excel utilizzando Pillow
-    images = carica_immagini_da_excel(uploaded_file)
+    if all_extracted_data is not None:
+        st.success("File Excel caricato con successo!")
+        
+        # Carica le immagini dal DataFrame pandas utilizzando Pillow
+        images = carica_immagini_da_excel(all_extracted_data)
 
-    # Visualizza le immagini in Streamlit
-    if images:
-        st.header("Anteprima Immagini")
-        for img in images:
-            st.image(img, caption='Anteprima immagine')
-
-    # Converti il DataFrame in un file Excel per il download
-    towrite = io.BytesIO()
-    with pd.ExcelWriter(towrite, engine='xlsxwriter') as writer:
-        all_extracted_data.to_excel(writer, index=False)
-    towrite.seek(0)  # Reset del
+        # Visualizza le immagini in Streamlit
+        if images:
+            st.header("Anteprima Immagini")
+            for img in images:
+                st.image(img, caption='Anteprima immagine')
+    else:
+        st.error("Si è verificato un errore durante il caricamento del file Excel.")
