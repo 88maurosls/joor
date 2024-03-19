@@ -78,9 +78,6 @@ def save_combined_data_to_excel(cleaned_data):
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
     combined_df = combined_df[ordered_columns]
 
-    # Stampa delle colonne ordinate
-    st.write("Colonnoe ordinate:", combined_df.columns)
-
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
