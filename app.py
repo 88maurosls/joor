@@ -8,47 +8,40 @@ def clean_and_extract_product_data(input_file):
     size_columns = set()
 
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
-        df.dropna(axis=1, how='all', inplace=True)
-
-        start_index = end_index = None
-        for index, row in df.iterrows():
-            if start_index is None and "Style Name" in row.values:
-                start_index = index
-            elif "Total:" in row.values:
-                end_index = index
+        df = pd.read_excel(input_file, sheet_name=sheet_name)
+        
+        # Trova indice di "Country of Origin" e "Sugg. Retail (EUR)"
+        country_of_origin_index = None
+        sugg_retail_index = None
+        for col_index, col in enumerate(df.columns):
+            if col == "Country of Origin":
+                country_of_origin_index = col_index
+            elif col == "Sugg. Retail (EUR)":
+                sugg_retail_index = col_index
+            elif country_of_origin_index is not None and sugg_retail_index is not None:
                 break
 
-        if start_index is not None and end_index is not None:
-            df = df.iloc[start_index:end_index]
-            df.columns = df.iloc[0]  # Set headers
-            df = df[1:].reset_index(drop=True)
+        if country_of_origin_index is not None and sugg_retail_index is not None:
+            # Seleziona le colonne tra "Country of Origin" e "Sugg. Retail (EUR)"
+            size_cols = df.columns[country_of_origin_index + 1:sugg_retail_index]
+            size_columns.update(size_cols)
 
-            # Trova le colonne delle taglie comprese tra 'Country of Origin' e 'Sugg. Retail (EUR)'
-            if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
-                start_col_index = df.columns.get_loc('Country of Origin') + 1
-                end_col_index = df.columns.get_loc('Sugg. Retail (EUR)')
-                size_columns.update(df.columns[start_col_index:end_col_index])
-                all_data_frames.append(df)
-            else:
-                st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
+            # Rimuovi le colonne delle taglie dal DataFrame
+            df = df.drop(columns=size_cols)
+
+            # Aggiungi il DataFrame pulito alla lista
+            all_data_frames.append(df)
         else:
-            st.warning(f"Start or end index not found in sheet: {sheet_name}")
+            st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
 
     if not all_data_frames:
         return pd.DataFrame()
 
-    # Prepara il DataFrame finale
-    final_columns = set(df for df in all_data_frames[0].columns)
-    for sizes in size_columns:
-        final_columns.add(sizes)
-    final_columns = list(final_columns)
-
-    # Concatena i DataFrame
+    # Concatena tutti i DataFrame puliti
     final_df = pd.concat(all_data_frames, ignore_index=True)
-    final_df = final_df.reindex(columns=final_columns)
 
     return final_df
+
 
 
     # Prepare final DataFrame
