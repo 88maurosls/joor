@@ -1,8 +1,6 @@
 import io
 import pandas as pd
 import streamlit as st
-from openpyxl import load_workbook
-from openpyxl_image_loader import SheetImageLoader
 from PIL import Image
 
 def trova_indice_intestazione(df):
@@ -66,25 +64,21 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
 
     return all_extracted_data
 
-# Funzione per caricare le immagini dal file Excel
+# Funzione per caricare le immagini dal file Excel utilizzando Pillow
 def carica_immagini_da_excel(file_path):
-    wb = load_workbook(file_path)
-    sheet = wb.active  # Seleziona il foglio attivo
-    image_loader = SheetImageLoader(sheet)
+    wb = pd.ExcelFile(file_path)
     images = []
-    for cell in sheet.iter_rows(min_row=1, max_row=1):  # Itera sulla prima riga per trovare le celle con immagini
-        for col in cell:
-            if image_loader.image_in(col.coordinate):
-                img = image_loader.get(col.coordinate)
-                images.append(img)
+    for sheet_name in wb.sheet_names:
+        sheet = wb.parse(sheet_name)
+        for index, row in sheet.iterrows():
+            if "Style Image" in row and isinstance(row["Style Image"], str):
+                # Carica l'immagine utilizzando Pillow
+                try:
+                    img = Image.open(io.BytesIO(row["Style Image"]))
+                    images.append(img)
+                except Exception as e:
+                    st.warning(f"Impossibile caricare l'immagine dalla riga {index}: {e}")
     return images
-
-# Funzione per visualizzare le immagini in Streamlit
-def visualizza_immagini(images):
-    if images:
-        st.header("Anteprima Immagini")
-        for img in images:
-            st.image(img, caption='Anteprima immagine')
 
 # Streamlit UI
 st.title("Tabulazione JOOR")
@@ -95,17 +89,17 @@ if uploaded_file is not None:
     all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
     st.success("Dati estratti e riordinati con successo!")
 
-    # Carica le immagini dal file Excel
+    # Carica le immagini dal file Excel utilizzando Pillow
     images = carica_immagini_da_excel(uploaded_file)
 
     # Visualizza le immagini in Streamlit
-    visualizza_immagini(images)
+    if images:
+        st.header("Anteprima Immagini")
+        for img in images:
+            st.image(img, caption='Anteprima immagine')
 
     # Converti il DataFrame in un file Excel per il download
     towrite = io.BytesIO()
     with pd.ExcelWriter(towrite, engine='xlsxwriter') as writer:
         all_extracted_data.to_excel(writer, index=False)
-    towrite.seek(0)  # Reset del puntatore
-
-    # Crea un link per il download del file elaborato
-    st.download_button(label="Scarica Excel elaborato", data=towrite, file_name="dati_elaborati.xlsx", mime="application/vnd.ms-excel")
+    towrite.seek(0)  # Reset del
