@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from io import BytesIO
+import re
 
 def clean_and_extract_product_data(input_file):
     xls = pd.ExcelFile(input_file)
@@ -48,6 +49,9 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
+    # Ordinamento delle colonne in base all'etichetta (taglia)
+    combined_df = combined_df.reindex(sorted(combined_df.columns, key=lambda x: (isinstance(x, str), x)))
+
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
