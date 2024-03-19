@@ -34,14 +34,16 @@ def clean_and_extract_product_data(input_file):
     
     return cleaned_data
 
+def is_numeric_column(col):
+    try:
+        float(col)
+        return True
+    except ValueError:
+        return False
+
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
-    combined_df = pd.DataFrame(columns=[
-        'Style Image', 'Style Name', 'Style Number', 'Color', 'Color Code',
-        'Color Comment', 'Style Comment', 'Materials', 'Fabrication',
-        'Country of Origin', 'Sugg. Retail (EUR)', 'WholeSale (EUR)',
-        'Item Discount', 'Units', 'Total (EUR)', 'Sheet'
-    ])
+    combined_df = pd.DataFrame()
 
     # Unione dei dati dei vari fogli
     for sheet_name, data_df in cleaned_data.items():
@@ -49,8 +51,13 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
-    # Ordinamento delle colonne in base all'etichetta (taglia)
-    combined_df = combined_df.reindex(sorted(combined_df.columns, key=lambda x: (isinstance(x, str), x)))
+    # Ordinamento delle colonne numeriche
+    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
+    numeric_cols.sort(key=lambda x: float(re.sub('[^0-9.]', '', x)))  # Ordina le colonne numeriche come float
+    
+    # Concatenazione delle colonne non numeriche
+    non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
+    combined_df = combined_df[non_numeric_cols + numeric_cols]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
