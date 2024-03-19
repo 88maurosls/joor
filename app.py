@@ -41,14 +41,8 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    if isinstance(col, str):  # Controllo se col è una stringa
-        numeric_part = ''
-        for char in col:
-            if char.isdigit() or char == '.':
-                numeric_part += char
-        return numeric_part
-    else:
-        return ''
+    numeric_part = ''.join(filter(str.isdigit, col))  # Estrae solo i numeri dall'etichetta della colonna
+    return numeric_part
 
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
@@ -60,10 +54,10 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
-    # Ordinamento delle colonne numeriche
+    # Ordinamento delle colonne numericamente
     numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
-    numeric_cols.sort(key=lambda x: float(extract_numeric_part(x)) if extract_numeric_part(x) != '' else float('inf'))
-    
+    numeric_cols.sort(key=lambda x: int(extract_numeric_part(x)))
+
     # Concatenazione delle colonne non numeriche
     non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
     combined_df = combined_df[non_numeric_cols + numeric_cols]
