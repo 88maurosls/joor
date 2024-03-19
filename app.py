@@ -59,24 +59,18 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Ottiene gli indici delle colonne chiave
-    try:
-        index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
-        index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
-    except KeyError as e:
-        raise KeyError(f"Colonna non trovata: {e}")
+    # Identifica le colonne prima e dopo le taglie numeriche
+    cols_before_sizes = combined_df.columns.tolist()[:combined_df.columns.get_loc("Country of Origin") + 1]
+    cols_after_sizes = combined_df.columns.tolist()[combined_df.columns.get_loc("Sugg. Retail (EUR)"):]
 
-    # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
-    fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
-    fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
+    # Identifica le colonne delle taglie numeriche per l'ordinamento
+    size_cols = [col for col in combined_df.columns if col not in cols_before_sizes + cols_after_sizes and col.replace('.','').isdigit()]
 
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
+    # Ordina le colonne delle taglie numeriche
+    size_cols_sorted = sorted(size_cols, key=lambda x: float(x))
 
-    # Riorganizza il DataFrame con l'ordine desiderato delle colonne
-    ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
-    combined_df = combined_df[ordered_columns]
+    # Ordina il DataFrame con le colonne nelle posizioni corrette
+    combined_df = combined_df[cols_before_sizes + size_cols_sorted + cols_after_sizes]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
