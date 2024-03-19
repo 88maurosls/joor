@@ -4,11 +4,10 @@ from io import BytesIO
 
 def clean_and_extract_product_data(input_file):
     xls = pd.ExcelFile(input_file)
-    sheet_names = xls.sheet_names
-
-    cleaned_data = {}
+    all_data_frames = []  # Lista per mantenere tutti i DataFrame puliti
+    size_columns = set()  # Set per tracciare univocamente tutte le colonne delle taglie trovate
     
-    for sheet_name in sheet_names:
+    for sheet_name in xls.sheet_names:
         df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
         df.dropna(axis=1, how='all', inplace=True)
 
@@ -22,38 +21,56 @@ def clean_and_extract_product_data(input_file):
                 break
         
         if start_index is not None and end_index is not None:
+            # Imposta la prima riga valida come intestazione
             product_data_df = df.iloc[start_index:end_index]
             product_data_df.columns = product_data_df.iloc[0]
             product_data_df = product_data_df[1:]
             product_data_df.reset_index(drop=True, inplace=True)
-            
-            cleaned_data[sheet_name] = product_data_df
-        else:
-            st.warning(f"Non è stato possibile trovare i dati degli oggetti acquistati nel foglio: {sheet_name}")
-    
-    return cleaned_data
 
-def save_cleaned_data_to_excel(cleaned_data):
+            # Identifica colonne delle taglie
+            if "Country of Origin" in product_data_df and "Sugg. Retail (EUR)" in product_data_df:
+                size_start = product_data_df.columns.get_loc("Country of Origin") + 1
+                size_end = product_data_df.columns.get_loc("Sugg. Retail (EUR)")
+                sizes = product_data_df.columns[size_start:size_end]
+                size_columns.update(sizes)
+            
+            all_data_frames.append(product_data_df)
+
+    if not all_data_frames:
+        return pd.DataFrame()
+
+    # Unifica tutte le colonne per assicurare coerenza tra i DataFrame
+    unified_columns = list(all_data_frames[0].columns)
+    for size in sorted(size_columns):  # Assicura che le taglie siano in ordine
+        if size not in unified_columns:
+            unified_columns.insert(unified_columns.index("Sugg. Retail (EUR)"), size)
+    
+    # Concatena tutti i DataFrame in uno, riempiendo le colonne mancanti con NaN
+    final_df = pd.concat(all_data_frames).reindex(columns=unified_columns)
+    
+    return final_df
+
+def save_to_excel(final_df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        for sheet_name, data_df in cleaned_data.items():
-            data_df.to_excel(writer, sheet_name=sheet_name)
-    output.seek(0)  # Sposta il cursore all'inizio del file per il download
+        final_df.to_excel(writer, index=False)
+    output.seek(0)
     return output
 
-
 # Interfaccia Streamlit
-st.title('Pulizia e estrazione dati prodotto da Excel')
+st.title('Unione e pulizia dati Excel in un unico foglio')
 
 uploaded_file = st.file_uploader("Carica il tuo file Excel", type=["xlsx"])
 if uploaded_file is not None:
-    cleaned_data = clean_and_extract_product_data(uploaded_file)
+    final_df = clean_and_extract_product_data(uploaded_file)
     
-    if st.button('Genera Dati Puliti'):
-        output = save_cleaned_data_to_excel(cleaned_data)
+    if st.button('Genera Excel Unificato') and not final_df.empty:
+        output = save_to_excel(final_df)
         st.download_button(
-            label="Scarica Dati Puliti come Excel",
+            label="Scarica Excel Unificato",
             data=output,
-            file_name="data_puliti.xlsx",
+            file_name="excel_unificato.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+    elif final_df.empty:
+        st.warning("Il file caricato non contiene dati validi per l'unificazione.")
