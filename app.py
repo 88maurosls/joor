@@ -44,12 +44,13 @@ def extract_numeric_part(col):
     if isinstance(col, str):  # Controlla se col è una stringa
         try:
             # Estrae solo i numeri dall'etichetta della colonna
-            numeric_part = ''.join(filter(lambda x: x.isdigit() or x == '.', col))
+            numeric_part = ''.join(filter(lambda x: x.isdigit() or x == '.' or x == '-', col))
             return float(numeric_part) if numeric_part else float('inf')  # Restituisce float('inf') se non ci sono numeri
         except ValueError:
             return float('inf')  # Restituisce float('inf') in caso di errore
     else:
         return float('inf')  # Restituisce float('inf') se col non è una stringa
+
 
 
 def save_combined_data_to_excel(cleaned_data):
