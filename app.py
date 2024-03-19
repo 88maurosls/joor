@@ -41,8 +41,14 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    numeric_part = ''.join(filter(lambda x: x.isdigit() or x == '.', col))  # Estrae solo i numeri dall'etichetta della colonna
-    return numeric_part
+    if isinstance(col, str):  # Controlla se col è una stringa
+        numeric_part = ''
+        for char in col:
+            if char.isdigit() or char == '.':
+                numeric_part += char
+        return numeric_part
+    else:
+        return ''
 
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
