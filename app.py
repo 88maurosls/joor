@@ -82,9 +82,14 @@ def save_combined_data_to_excel(cleaned_data):
     if "Country of Origin" in ordered_columns and "Sugg. Retail (EUR)" in ordered_columns:
         ordered_columns.remove("Country of Origin")
         ordered_columns.remove("Sugg. Retail (EUR)")
-        index_of_country_of_origin_new = ordered_columns.index("Sugg. Retail (EUR)")
-        ordered_columns.insert(index_of_country_of_origin_new, "Country of Origin")
-        ordered_columns.insert(index_of_country_of_origin_new + 1, "Sugg. Retail (EUR)")
+        
+        # Assicurati che la colonna sia presente prima di ottenere l'indice
+        if "Sugg. Retail (EUR)" in ordered_columns:
+            index_of_sugg_retail_new = ordered_columns.index("Sugg. Retail (EUR)")
+            ordered_columns.insert(index_of_sugg_retail_new, "Country of Origin")
+        else:
+            st.warning("La colonna 'Sugg. Retail (EUR)' non è presente nei dati.")
+            return None
 
     combined_df = combined_df[ordered_columns]
 
@@ -94,6 +99,7 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
     return output_combined
+
 
 
     
