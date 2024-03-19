@@ -1,34 +1,84 @@
-import streamlit as st
+#streamlit joor
+
+import io
 import pandas as pd
-from PIL import Image
-import base64
+import streamlit as st
 
-def get_image_from_base64(base64_string):
-    decoded_image = base64.b64decode(base64_string)
-    img = Image.open(io.BytesIO(decoded_image))
-    return img
+def trova_indice_intestazione(df):
+    for index, row in df.iterrows():
+        for value in row:
+            if isinstance(value, str) and "Style Image" in value:
+                return index
+    raise ValueError("Intestazione non trovata.")
 
-def main():
-    st.title("Estrai Immagini da Excel")
+def estrai_dati_excel(xls, sheet_name):
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=None)
+    header_index = trova_indice_intestazione(df)
+    df = pd.read_excel(xls, sheet_name=sheet_name, header=header_index)
+    
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+    
+    if 'Country of Origin' in df.columns:
+        total_row_index = df[df['Country of Origin'].astype(str).str.contains("Total:", na=False)].index
+        if not total_row_index.empty:
+            df = df.iloc[:total_row_index[0]]
+    
+    taglie_columns = [col for col in df.columns if col not in [
+        "Style Image", "Style Name", "Style Number", "Color", 
+        "Color Code", "Color Comment", "Style Comment", 
+        "Materials", "Fabrication", "Country of Origin",
+        "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount", 
+        "Units", "Total (EUR)"
+    ]]
+    for col in taglie_columns:
+        df[col] = df[col].fillna(0)
+    
+    return df
 
-    # Carica il file Excel
-    file = st.file_uploader("Carica il file Excel", type=["xlsx"])
+def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
+    xls = pd.ExcelFile(uploaded_file)
+    
+    colonne_fisse_prima = [
+        "Style Image", "Style Name", "Style Number", "Color", 
+        "Color Code", "Color Comment", "Style Comment", 
+        "Materials", "Fabrication", "Country of Origin"
+    ]
+    colonne_fisse_dopo = [
+        "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount", 
+        "Units", "Total (EUR)"
+    ]
+    
+    colonne_taglie = set()
+    
+    for sheet_name in xls.sheet_names:
+        df = estrai_dati_excel(xls, sheet_name)
+        colonne_taglie.update(set(df.columns) - set(colonne_fisse_prima) - set(colonne_fisse_dopo))
 
-    if file is not None:
-        df = pd.read_excel(file)
+    all_extracted_data = pd.concat([estrai_dati_excel(xls, sheet_name) for sheet_name in xls.sheet_names], ignore_index=True)
+    
+    ordine_completo_colonne = colonne_fisse_prima + sorted(list(colonne_taglie)) + colonne_fisse_dopo
 
-        # Mostra il dataframe
-        st.write("Contenuto del file Excel:")
-        st.write(df.to_html(escape=False), unsafe_allow_html=True)
+    for col in colonne_taglie:
+        all_extracted_data[col] = all_extracted_data[col].fillna(0)
 
-        # Estrai e mostra le immagini
-        for column in df.columns:
-            if df[column].dtype == object:
-                for i, image_data in enumerate(df[column]):
-                    if isinstance(image_data, str) and image_data.startswith("data:image"):
-                        st.subheader(f"Immagine dalla colonna '{column}' - Righe {i+1}")
-                        image = get_image_from_base64(image_data.split(",")[1])
-                        st.image(image)
+    all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
 
-if __name__ == "__main__":
-    main()
+    return all_extracted_data
+
+# Streamlit UI
+st.title("Tabulazione JOOR")
+
+uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
+
+if uploaded_file is not None:
+    all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
+    st.success("Dati estratti e riordinati con successo!")
+
+    # Converti il DataFrame in un file Excel per il download
+    towrite = io.BytesIO()
+    with pd.ExcelWriter(towrite, engine='xlsxwriter') as writer:
+        all_extracted_data.to_excel(writer, index=False)
+    towrite.seek(0)  # Reset del puntatore
+
+    # Crea un link per il download del file elaborato
+    st.download_button(label="Scarica Excel elaborato", data=towrite, file_name="dati_elaborati.xlsx", mime="application/vnd.ms-excel")
