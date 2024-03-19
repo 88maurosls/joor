@@ -24,28 +24,30 @@ def clean_and_extract_product_data(input_file):
             df.columns = df.iloc[0]  # Set headers
             df = df[1:].reset_index(drop=True)
 
+            # Check if 'Country of Origin' and 'Sugg. Retail (EUR)' are in columns
             if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
                 sizes_start = df.columns.get_loc('Country of Origin') + 1
                 sizes_end = df.columns.get_loc('Sugg. Retail (EUR)')
                 sizes = df.columns[sizes_start:sizes_end]
                 size_columns.update(sizes)
-            
-            all_data_frames.append(df)
+                all_data_frames.append(df)
+            else:
+                st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
+        else:
+            st.warning(f"Start or end index not found in sheet: {sheet_name}")
 
     if not all_data_frames:
         return pd.DataFrame()
 
-    # Assicurati che size_columns contenga solo stringhe
-    size_columns = {str(col) for col in size_columns if pd.notnull(col)}
+    # Prepare final DataFrame
+    final_columns = set(df for df in all_data_frames[0].columns)
+    for sizes in size_columns:
+        final_columns.add(sizes)
+    final_columns = list(final_columns)
 
-    # Ordina le colonne delle taglie
-    size_columns_sorted = sorted(size_columns)
-
-    # Preparazione delle colonne finali
-    final_columns = list(all_data_frames[0].columns)
-    additional_columns = [col for col in final_columns if col not in size_columns_sorted and col not between "Country of Origin" and "Sugg. Retail (EUR)"]
+    # Concatenate DataFrames
     final_df = pd.concat(all_data_frames, ignore_index=True)
-    final_df = final_df.reindex(columns=final_columns + size_columns_sorted + additional_columns)
+    final_df = final_df.reindex(columns=final_columns)
 
     return final_df
 
