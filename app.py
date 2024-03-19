@@ -7,7 +7,7 @@ def clean_and_extract_product_data(input_file):
     sheet_names = xls.sheet_names
 
     cleaned_data = {}
-
+    
     for sheet_name in sheet_names:
         df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
         df.dropna(axis=1, how='all', inplace=True)
@@ -20,21 +20,20 @@ def clean_and_extract_product_data(input_file):
             elif "Total:" in row.values:
                 end_index = index
                 break
-
+        
         if start_index is not None and end_index is not None:
             product_data_df = df.iloc[start_index:end_index]
             product_data_df.columns = product_data_df.iloc[0]
             product_data_df = product_data_df[1:]
             product_data_df.reset_index(drop=True, inplace=True)
-
+            
             cleaned_data[sheet_name] = product_data_df
         else:
             st.warning(f"Non è stato possibile trovare i dati degli oggetti acquistati nel foglio: {sheet_name}")
-
+    
     return cleaned_data
 
 def is_numeric_column(col):
-    # Controlla se la colonna è numericamente ordinabile, escludendo colonne non destinate all'ordinamento
     try:
         float(col)
         return True
@@ -42,51 +41,38 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    # Assegna un peso ai caratteri non numerici
-    weight = 1
-    for char in str(col):
-        if not char.isdigit():
-            weight += 10  # Modifica il peso in base alle tue esigenze
-    
-    col_str = str(col)
-    numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
-    return int(numeric_part) * weight
+    if isinstance(col, str):  # Controlla se col è una stringa
+        try:
+            numeric_part = float(''.join(filter(lambda x: x.isdigit() or x == '.', col)))  # Estrae solo i numeri dall'etichetta della colonna
+            return numeric_part
+        except ValueError:
+            return float('inf')  # Restituisce float('inf') in caso di errore
+    else:
+        return float('inf')  # Restituisce float('inf') se col non è una stringa
 
 def save_combined_data_to_excel(cleaned_data):
+    # Creazione di un nuovo DataFrame con l'intestazione desiderata
     combined_df = pd.DataFrame()
 
+    # Unione dei dati dei vari fogli
     for sheet_name, data_df in cleaned_data.items():
-        data_df['Sheet'] = sheet_name
+        # Aggiunta dei dati al DataFrame combinato
+        data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
+    
+    # Ordinamento delle colonne numericamente
+    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
+    numeric_cols.sort(key=lambda x: extract_numeric_part(x))
 
-    # Get column indices for reference columns
-    try:
-        country_of_origin_idx = combined_df.columns.get_loc("Country of Origin")
-        sugg_retail_idx = combined_df.columns.get_loc("Sugg. Retail (EUR)")
-    except KeyError as e:
-        raise KeyError(f"Colonna non trovata: {e}")
+    # Concatenazione delle colonne non numeriche
+    non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
+    combined_df = combined_df[non_numeric_cols + numeric_cols]
 
-    # Separate columns into three groups
-    fixed_cols_before = combined_df.columns[:country_of_origin_idx + 1].tolist()
-    size_cols = combined_df.columns[country_of_origin_idx + 1:sugg_retail_idx].tolist()
-    fixed_cols_after = combined_df.columns[sugg_retail_idx:].tolist()
-
-    # Escludi la riga "Total"
-    if "Total:" in combined_df.values:
-        combined_df = combined_df[combined_df != "Total:"]
-
-    # Sort size columns based on numeric part with weight for potential non-numeric characters
-    size_cols.sort(key=lambda col: extract_numeric_part(str(col)), reverse=True)
-
-    # Reorder the DataFrame
-    ordered_columns = fixed_cols_before + size_cols + fixed_cols_after
-    combined_df = combined_df[ordered_columns]
-
-    # Save to Excel
+    # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False)
-    output_combined.seek(0)
+    output_combined.seek(0)  # Sposta il cursore all'inizio del file per il download
     return output_combined
 
 # Interfaccia Streamlit
