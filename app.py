@@ -59,38 +59,23 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Trova l'indice delle colonne di riferimento
-    index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
-    index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
+    # Ottiene gli indici delle colonne chiave
+    try:
+        index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
+        index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
+    except KeyError as e:
+        raise KeyError(f"Colonna non trovata: {e}")
 
-    # Separa le colonne in tre liste: prima, durante e dopo le taglie
-    cols_before_sizes = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    cols_after_sizes = combined_df.columns[index_of_sugg_retail:].tolist()
-    size_cols = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
+    # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
+    fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
+    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
+    fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
 
-    # Identifica e ordina le taglie numeriche
-    numeric_size_cols = [col for col in size_cols if col.isdigit()]
-    numeric_size_cols_sorted = sorted(numeric_size_cols, key=lambda x: int(x))
+    # Preparazione dell'ordinamento delle colonne delle taglie
+    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
 
-    # Unisci le taglie non numeriche con quelle numeriche ordinate
-    size_cols_sorted = [col for col in size_cols if not col.isdigit()] + numeric_size_cols_sorted
-
-    # Modifica l'ordine delle colonne
-    ordered_columns = cols_before_sizes + size_cols_sorted + cols_after_sizes
-
-    # Assicurati che le colonne "Country of Origin" e "Sugg. Retail (EUR)" siano presenti nell'ordine
-    if "Country of Origin" in ordered_columns and "Sugg. Retail (EUR)" in ordered_columns:
-        ordered_columns.remove("Country of Origin")
-        ordered_columns.remove("Sugg. Retail (EUR)")
-        
-        # Assicurati che la colonna sia presente prima di ottenere l'indice
-        if "Sugg. Retail (EUR)" in ordered_columns:
-            index_of_sugg_retail_new = ordered_columns.index("Sugg. Retail (EUR)")
-            ordered_columns.insert(index_of_sugg_retail_new, "Country of Origin")
-        else:
-            st.warning("La colonna 'Sugg. Retail (EUR)' non è presente nei dati.")
-            return None
-
+    # Riorganizza il DataFrame con l'ordine desiderato delle colonne
+    ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
     combined_df = combined_df[ordered_columns]
 
     # Salvataggio in un nuovo file Excel
@@ -101,8 +86,6 @@ def save_combined_data_to_excel(cleaned_data):
     return output_combined
 
 
-
-    
 # Interfaccia Streamlit
 st.title('Unione e salvataggio dati prodotto da Excel')
 
@@ -118,4 +101,3 @@ if uploaded_file is not None:
             file_name="dati_uniti.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
