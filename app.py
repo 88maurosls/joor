@@ -66,13 +66,12 @@ def save_combined_data_to_excel(cleaned_data):
     except KeyError as e:
         raise KeyError(f"Colonna non trovata: {e}")
 
+    # Individua le colonne delle taglie numeriche
+    size_columns = [col for col in combined_df.columns if col.isdigit()]
+
     # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
     fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
     fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
-
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    #size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
 
     # Riorganizza il DataFrame con l'ordine desiderato delle colonne
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
