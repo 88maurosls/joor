@@ -47,6 +47,18 @@ def save_combined_data_to_excel(cleaned_data):
         # Aggiunta dei dati al DataFrame combinato
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
+    # Riorganizzazione delle colonne
+    combined_df = combined_df[['Style Image', 'Style Name', 'Style Number', 'Color', 'Color Code',
+                               'Color Comment', 'Style Comment', 'Materials', 'Fabrication',
+                               'Country of Origin', 'Sugg. Retail (EUR)', 'WholeSale (EUR)',
+                               'Item Discount', 'Units', 'Total (EUR)', 
+                               *[col for col in combined_df.columns if col not in ['Style Image', 'Style Name', 
+                                                                                   'Style Number', 'Color', 'Color Code',
+                                                                                   'Color Comment', 'Style Comment', 
+                                                                                   'Materials', 'Fabrication',
+                                                                                   'Country of Origin', 'Sugg. Retail (EUR)', 
+                                                                                   'WholeSale (EUR)', 'Item Discount', 
+                                                                                   'Units', 'Total (EUR)']]]
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
