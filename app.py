@@ -47,6 +47,11 @@ def save_combined_data_to_excel(cleaned_data):
         # Aggiunta dei dati al DataFrame combinato
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
+    # Riorganizzazione delle colonne
+    cols = combined_df.columns.tolist()
+    cols = cols[:-3] + cols[-3:-1] + cols[-1:] + cols[-3:-1]
+    combined_df = combined_df[cols]
+    
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
