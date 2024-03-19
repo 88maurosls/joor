@@ -67,7 +67,7 @@ def save_combined_data_to_excel(cleaned_data):
         raise KeyError(f"Colonna non trovata: {e}")
 
     # Individua le colonne delle taglie numeriche
-    size_columns = [col for col in combined_df.columns if col.isdigit()]
+    size_columns = [col for col in combined_df.columns if str(col).isdigit()]
 
     # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
     fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
