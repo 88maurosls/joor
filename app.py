@@ -71,11 +71,11 @@ def save_combined_data_to_excel(cleaned_data):
     size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
     fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
 
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
-
     # Stampa delle taglie
     print("Taglie finali:", size_columns)
+
+    # Preparazione dell'ordinamento delle colonne delle taglie
+    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
 
     # Riorganizza il DataFrame con l'ordine desiderato delle colonne
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
@@ -87,7 +87,6 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
     return output_combined
-
 
 
 # Interfaccia Streamlit
