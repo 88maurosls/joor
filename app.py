@@ -43,13 +43,14 @@ st.title('Excel Data Cleaning and Merging')
 
 uploaded_file = st.file_uploader("Upload your Excel file", type="xlsx")
 if uploaded_file is not None:
-    final_df = clean_and_extract_product_data(uploaded_file)
+    # Assicurati che il nome della funzione qui corrisponda al nome della funzione definita
+    final_df = clean_and_extract_product_data_corrected(uploaded_file)
     
-    if not final_df.empty and st.button('Generate Cleaned Excel'):
+    if not final_df.empty and st.button('Genera Excel Unificato'):
         output = save_to_excel(final_df)
         st.download_button(
-            label="Download Cleaned Excel",
+            label="Scarica Excel Unificato",
             data=output,
-            file_name="cleaned_data.xlsx",
+            file_name="excel_unificato.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
