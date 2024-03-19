@@ -34,7 +34,6 @@ def clean_and_extract_product_data(input_file):
     return cleaned_data
 
 def is_numeric_column(col):
-    # Controlla se la colonna è numericamente ordinabile, escludendo colonne non destinate all'ordinamento
     try:
         float(col)
         return True
@@ -59,17 +58,14 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Identifica le colonne da mantenere fisse e quelle numeriche da ordinare
-    fixed_columns_before = [col for col in combined_df.columns if col < "Sugg. Retail (EUR)"]  # Tutte le colonne prima di "Sugg. Retail (EUR)"
-    numeric_cols = [col for col in combined_df.columns if col.startswith(tuple(map(str, range(32, 50))))]  # Le taglie come numeri da 32 a 49
-    fixed_columns_after = [col for col in combined_df.columns if col >= "Sugg. Retail (EUR)"]  # Colonne da "Sugg. Retail (EUR)" in poi
-
-    # Ordinamento delle colonne numeriche (taglie)
+    # Identifica le colonne numeriche
+    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
+    # Ordina le colonne numeriche basandosi sul valore numerico estratto
     numeric_cols.sort(key=extract_numeric_part)
 
-    # Riorganizza il DataFrame con l'ordine desiderato delle colonne
-    ordered_columns = fixed_columns_before + numeric_cols + fixed_columns_after
-    combined_df = combined_df[ordered_columns]
+    non_numeric_cols = [col for col in combined_df.columns if not is_numeric_column(col)]
+    # Ordina prima le colonne non numeriche e poi quelle numeriche
+    combined_df = combined_df[non_numeric_cols + numeric_cols]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
