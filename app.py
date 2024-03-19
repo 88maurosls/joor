@@ -10,16 +10,16 @@ def clean_and_extract_product_data(input_file):
     for sheet_name in xls.sheet_names:
         try:
             df = pd.read_excel(input_file, sheet_name=sheet_name)
-            
+
             # Trova indice di "Country of Origin" e "Sugg. Retail (EUR)"
             country_of_origin_index = None
             sugg_retail_index = None
-            for col_index, col in enumerate(df.columns):
-                if col.strip() == "Country of Origin":
-                    country_of_origin_index = col_index
-                elif col.strip() == "Sugg. Retail (EUR)":
-                    sugg_retail_index = col_index
-                elif country_of_origin_index is not None and sugg_retail_index is not None:
+            for row_index, row in df.iterrows():
+                if "Country of Origin" in row.values:
+                    country_of_origin_index = row.values.tolist().index("Country of Origin")
+                if "Sugg. Retail (EUR)" in row.values:
+                    sugg_retail_index = row.values.tolist().index("Sugg. Retail (EUR)")
+                if country_of_origin_index is not None and sugg_retail_index is not None:
                     break
 
             if country_of_origin_index is not None and sugg_retail_index is not None:
@@ -34,7 +34,6 @@ def clean_and_extract_product_data(input_file):
                 all_data_frames.append(df)
             else:
                 st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
-                st.warning(f"Sheet columns: {df.columns}")
         except Exception as e:
             st.warning(f"Error processing sheet '{sheet_name}': {str(e)}")
 
@@ -45,7 +44,6 @@ def clean_and_extract_product_data(input_file):
     final_df = pd.concat(all_data_frames, ignore_index=True)
 
     return final_df
-
 
     # Prepare final DataFrame
     final_columns = set(df for df in all_data_frames[0].columns)
