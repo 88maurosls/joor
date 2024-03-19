@@ -1,6 +1,9 @@
 import io
 import pandas as pd
 import streamlit as st
+from openpyxl import load_workbook
+from openpyxl_image_loader import SheetImageLoader
+from PIL import Image
 
 def trova_indice_intestazione(df):
     for index, row in df.iterrows():
@@ -63,6 +66,26 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
 
     return all_extracted_data
 
+# Funzione per caricare le immagini dal file Excel
+def carica_immagini_da_excel(file_path):
+    wb = load_workbook(file_path)
+    sheet = wb.active  # Seleziona il foglio attivo
+    image_loader = SheetImageLoader(sheet)
+    images = []
+    for cell in sheet.iter_rows(min_row=1, max_row=1):  # Itera sulla prima riga per trovare le celle con immagini
+        for col in cell:
+            if image_loader.image_in(col.coordinate):
+                img = image_loader.get(col.coordinate)
+                images.append(img)
+    return images
+
+# Funzione per visualizzare le immagini in Streamlit
+def visualizza_immagini(images):
+    if images:
+        st.header("Anteprima Immagini")
+        for img in images:
+            st.image(img, caption='Anteprima immagine')
+
 # Streamlit UI
 st.title("Tabulazione JOOR")
 
@@ -71,6 +94,12 @@ uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 if uploaded_file is not None:
     all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
     st.success("Dati estratti e riordinati con successo!")
+
+    # Carica le immagini dal file Excel
+    images = carica_immagini_da_excel(uploaded_file)
+
+    # Visualizza le immagini in Streamlit
+    visualizza_immagini(images)
 
     # Converti il DataFrame in un file Excel per il download
     towrite = io.BytesIO()
