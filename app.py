@@ -19,7 +19,7 @@ def main():
 
         # Mostra il dataframe
         st.write("Contenuto del file Excel:")
-        st.write(df)
+        st.write(df.to_html(escape=False), unsafe_allow_html=True)
 
         # Estrai e mostra le immagini
         for column in df.columns:
