@@ -41,41 +41,37 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    if isinstance(col, str):  # Controlla se col è una stringa
-        try:
-            # Estrae solo i numeri dall'etichetta della colonna
-            numeric_part = ''.join(filter(lambda x: x.isdigit() or x == '.' or x == '-', col))
-            return float(numeric_part) if numeric_part else float('inf')  # Restituisce float('inf') se non ci sono numeri
-        except ValueError:
-            return float('inf')  # Restituisce float('inf') in caso di errore
-    else:
-        return float('inf')  # Restituisce float('inf') se col non è una stringa
-
-
+    # Questa versione assume che col sia sempre una stringa contenente un numero
+    # o una stringa che può essere convertita in numero.
+    try:
+        # Estrai solo i numeri (e il punto per i decimali) dall'etichetta della colonna
+        numeric_part = ''.join(filter(str.isdigit, col)) or '0'
+        return int(numeric_part)
+    except ValueError:
+        # In caso di qualsiasi errore, restituisci un numero molto alto per posizionare la colonna alla fine
+        return float('inf')
 
 def save_combined_data_to_excel(cleaned_data):
-    # Creazione di un nuovo DataFrame con l'intestazione desiderata
     combined_df = pd.DataFrame()
 
-    # Unione dei dati dei vari fogli
     for sheet_name, data_df in cleaned_data.items():
-        # Aggiunta dei dati al DataFrame combinato
-        data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
+        data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
-    
-    # Ordinamento delle colonne numericamente
-    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
-    numeric_cols.sort(key=lambda x: extract_numeric_part(x))
 
-    # Concatenazione delle colonne non numeriche
-    non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
+    # Identifica le colonne numeriche
+    numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
+    # Ordina le colonne numeriche basandosi sul valore numerico estratto
+    numeric_cols.sort(key=extract_numeric_part)
+
+    non_numeric_cols = [col for col in combined_df.columns if not is_numeric_column(col)]
+    # Ordina prima le colonne non numeriche e poi quelle numeriche
     combined_df = combined_df[non_numeric_cols + numeric_cols]
 
     # Salvataggio in un nuovo file Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False)
-    output_combined.seek(0)  # Sposta il cursore all'inizio del file per il download
+    output_combined.seek(0)
     return output_combined
 
 # Interfaccia Streamlit
