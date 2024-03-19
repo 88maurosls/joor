@@ -65,20 +65,19 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
     return all_extracted_data
 
 # Funzione per caricare le immagini dal file Excel utilizzando Pillow
-def carica_immagini_da_excel(file_path):
-    wb = pd.ExcelFile(file_path)
+# Funzione per caricare le immagini dal DataFrame pandas utilizzando Pillow
+def carica_immagini_da_excel(dataframe):
     images = []
-    for sheet_name in wb.sheet_names:
-        sheet = wb.parse(sheet_name)
-        for index, row in sheet.iterrows():
-            if "Style Image" in row and isinstance(row["Style Image"], str):
-                # Carica l'immagine utilizzando Pillow
-                try:
-                    img = Image.open(io.BytesIO(row["Style Image"]))
-                    images.append(img)
-                except Exception as e:
-                    st.warning(f"Impossibile caricare l'immagine dalla riga {index}: {e}")
+    for index, row in dataframe.iterrows():
+        if "Style Image" in row and isinstance(row["Style Image"], bytes):
+            # Carica l'immagine utilizzando Pillow
+            try:
+                img = Image.open(io.BytesIO(row["Style Image"]))
+                images.append(img)
+            except Exception as e:
+                st.warning(f"Impossibile caricare l'immagine dalla riga {index}: {e}")
     return images
+
 
 # Streamlit UI
 st.title("Tabulazione JOOR")
