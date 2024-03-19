@@ -63,20 +63,20 @@ def save_combined_data_to_excel(cleaned_data):
     index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
     index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
 
-    # Separa le colonne in tre liste: prima, tra e dopo le taglie
+    # Separa le colonne in tre liste: prima, durante e dopo le taglie
     cols_before_sizes = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    cols_sizes_to_sort = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
     cols_after_sizes = combined_df.columns[index_of_sugg_retail:].tolist()
+    size_cols = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
 
-    # Ordina solo le colonne con numeri, lascia invariato il resto
-    numeric_cols = [col for col in cols_sizes_to_sort if any(char.isdigit() for char in col)]
-    non_numeric_cols = [col for col in cols_sizes_to_sort if not any(char.isdigit() for char in col)]
+    # Identifica e ordina le taglie numeriche
+    numeric_size_cols = [col for col in size_cols if col.isdigit()]
+    numeric_size_cols_sorted = sorted(numeric_size_cols, key=lambda x: int(x))
 
-    # Ordina solo le colonne numeriche
-    numeric_cols_sorted = sorted(numeric_cols, key=lambda x: int(''.join(filter(str.isdigit, x))))
+    # Unisci le taglie non numeriche con quelle numeriche ordinate
+    size_cols_sorted = [col for col in size_cols if not col.isdigit()] + numeric_size_cols_sorted
 
     # Combina le liste nell'ordine corretto
-    ordered_columns = cols_before_sizes + non_numeric_cols + numeric_cols_sorted + cols_after_sizes
+    ordered_columns = cols_before_sizes + size_cols_sorted + cols_after_sizes
     combined_df = combined_df[ordered_columns]
 
     # Salvataggio in un nuovo file Excel
