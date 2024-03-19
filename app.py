@@ -59,16 +59,20 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Identifica le colonne da mantenere fisse e quelle numeriche da ordinare
-    fixed_columns_before = [col for col in combined_df.columns if col < "Sugg. Retail (EUR)"]  # Tutte le colonne prima di "Sugg. Retail (EUR)"
-    numeric_cols = [col for col in combined_df.columns if col.startswith(tuple(map(str, range(32, 50))))]  # Le taglie come numeri da 32 a 49
-    fixed_columns_after = [col for col in combined_df.columns if col >= "Sugg. Retail (EUR)"]  # Colonne da "Sugg. Retail (EUR)" in poi
+    # Ottiene gli indici delle colonne chiave
+    index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
+    index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
 
-    # Ordinamento delle colonne numeriche (taglie)
-    numeric_cols.sort(key=extract_numeric_part)
+    # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
+    fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
+    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
+    fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
+
+    # Ordinamento delle colonne delle taglie
+    size_columns.sort(key=lambda col: extract_numeric_part(col) if col.isdigit() else float('inf'))
 
     # Riorganizza il DataFrame con l'ordine desiderato delle colonne
-    ordered_columns = fixed_columns_before + numeric_cols + fixed_columns_after
+    ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
     combined_df = combined_df[ordered_columns]
 
     # Salvataggio in un nuovo file Excel
