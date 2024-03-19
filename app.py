@@ -75,8 +75,17 @@ def save_combined_data_to_excel(cleaned_data):
     # Unisci le taglie non numeriche con quelle numeriche ordinate
     size_cols_sorted = [col for col in size_cols if not col.isdigit()] + numeric_size_cols_sorted
 
-    # Combina le liste nell'ordine corretto
+    # Modifica l'ordine delle colonne
     ordered_columns = cols_before_sizes + size_cols_sorted + cols_after_sizes
+
+    # Assicurati che le colonne "Country of Origin" e "Sugg. Retail (EUR)" siano presenti nell'ordine
+    if "Country of Origin" in ordered_columns and "Sugg. Retail (EUR)" in ordered_columns:
+        ordered_columns.remove("Country of Origin")
+        ordered_columns.remove("Sugg. Retail (EUR)")
+        index_of_country_of_origin_new = ordered_columns.index("Sugg. Retail (EUR)")
+        ordered_columns.insert(index_of_country_of_origin_new, "Country of Origin")
+        ordered_columns.insert(index_of_country_of_origin_new + 1, "Sugg. Retail (EUR)")
+
     combined_df = combined_df[ordered_columns]
 
     # Salvataggio in un nuovo file Excel
@@ -85,6 +94,7 @@ def save_combined_data_to_excel(cleaned_data):
         combined_df.to_excel(writer, index=False)
     output_combined.seek(0)
     return output_combined
+
 
     
 # Interfaccia Streamlit
