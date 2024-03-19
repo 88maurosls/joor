@@ -89,8 +89,6 @@ def save_combined_data_to_excel(cleaned_data):
     output_combined.seek(0)
     return output_combined
 
-
-
 # Interfaccia Streamlit
 st.title('Unione e salvataggio dati prodotto da Excel')
 
