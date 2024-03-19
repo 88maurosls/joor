@@ -64,7 +64,7 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
     return all_extracted_data
 
 # Streamlit UI
-st.title("Estrazione e Riordino Dati Excel")
+st.title("Tabulazione JOOR")
 
 uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
