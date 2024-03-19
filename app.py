@@ -5,7 +5,7 @@ from io import BytesIO
 def clean_and_extract_product_data(input_file):
     xls = pd.ExcelFile(input_file)
     all_data_frames = []
-    size_columns = set()  # Set per tracciare univocamente tutte le colonne delle taglie trovate
+    size_columns = set()
 
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
@@ -21,10 +21,9 @@ def clean_and_extract_product_data(input_file):
 
         if start_index is not None and end_index is not None:
             df = df.iloc[start_index:end_index]
-            df.columns = df.iloc[0]  # Imposta le intestazioni
+            df.columns = df.iloc[0]  # Set headers
             df = df[1:].reset_index(drop=True)
 
-            # Trova le colonne delle taglie, se esistono
             if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
                 sizes_start = df.columns.get_loc('Country of Origin') + 1
                 sizes_end = df.columns.get_loc('Sugg. Retail (EUR)')
@@ -33,15 +32,19 @@ def clean_and_extract_product_data(input_file):
             
             all_data_frames.append(df)
 
-    # Preparazione delle colonne finali escludendo le taglie per ora
-    final_columns = ['Style Name', 'Style Number', 'Color', 'Color Code', 'Country of Origin']  # Aggiungi altre colonne fisse qui
-    size_columns_sorted = sorted(list(size_columns))  # Ordina le colonne delle taglie
-    additional_columns = ['Sugg. Retail (EUR)', 'WholeSale (EUR)', 'Units', 'Total (EUR)']  # Continua con altre colonne fisse dopo le taglie
+    if not all_data_frames:
+        return pd.DataFrame()
 
-    # Concatena tutti i DataFrame considerando l'ordine delle colonne stabilito
+    # Assicurati che size_columns contenga solo stringhe
+    size_columns = {str(col) for col in size_columns if pd.notnull(col)}
+
+    # Ordina le colonne delle taglie
+    size_columns_sorted = sorted(size_columns)
+
+    # Preparazione delle colonne finali
+    final_columns = list(all_data_frames[0].columns)
+    additional_columns = [col for col in final_columns if col not in size_columns_sorted and col not between "Country of Origin" and "Sugg. Retail (EUR)"]
     final_df = pd.concat(all_data_frames, ignore_index=True)
-
-    # Riordina il DataFrame finale per riflettere l'ordine desiderato, inclusi i nomi delle taglie tra le colonne specificate
     final_df = final_df.reindex(columns=final_columns + size_columns_sorted + additional_columns)
 
     return final_df
