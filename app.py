@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
 from io import BytesIO
-import re
 
 def clean_and_extract_product_data(input_file):
     xls = pd.ExcelFile(input_file)
@@ -41,6 +40,13 @@ def is_numeric_column(col):
     except ValueError:
         return False
 
+def extract_numeric_part(col):
+    numeric_part = ''
+    for char in col:
+        if char.isdigit() or char == '.':
+            numeric_part += char
+    return numeric_part
+
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
     combined_df = pd.DataFrame()
@@ -53,10 +59,7 @@ def save_combined_data_to_excel(cleaned_data):
     
     # Ordinamento delle colonne numeriche
     numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
-    numeric_cols.sort(key=lambda x: float(re.sub('[^0-9.]', '', x)) if re.sub('[^0-9.]', '', x) != '' else float('inf'))
-    
-    # Stampare le colonne numeriche per debug
-    print("Numeric columns:", numeric_cols)
+    numeric_cols.sort(key=lambda x: float(extract_numeric_part(x)) if extract_numeric_part(x) != '' else float('inf'))
     
     # Concatenazione delle colonne non numeriche
     non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
