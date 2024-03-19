@@ -1,8 +1,8 @@
 import pandas as pd
 import streamlit as st
+from io import BytesIO
 
 def clean_and_extract_product_data(input_file):
-    # Usa pandas per leggere il file caricato
     xls = pd.ExcelFile(input_file)
     sheet_names = xls.sheet_names
 
@@ -39,7 +39,7 @@ def save_cleaned_data_to_excel(cleaned_data):
         for sheet_name, data_df in cleaned_data.items():
             data_df.to_excel(writer, sheet_name=sheet_name)
         writer.save()
-    output.seek(0)  # Importante per resettare il cursore nel buffer
+    output.seek(0)
     return output
 
 # Interfaccia Streamlit
@@ -51,10 +51,9 @@ if uploaded_file is not None:
     
     if st.button('Genera Dati Puliti'):
         output = save_cleaned_data_to_excel(cleaned_data)
-        output.seek(0)  # Torna all'inizio del BytesIO stream
         st.download_button(
             label="Scarica Dati Puliti come Excel",
             data=output,
             file_name="data_puliti.xlsx",
-            mime="application/vnd.ms-excel"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
