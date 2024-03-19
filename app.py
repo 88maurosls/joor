@@ -42,15 +42,15 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    # Assicurati che col sia una stringa
+    # Assegna un peso ai caratteri non numerici
+    weight = 1
+    for char in str(col):
+        if not char.isdigit():
+            weight += 10  # Modifica il peso in base alle tue esigenze
+    
     col_str = str(col)
-    try:
-        # Estrai solo i numeri (e il punto per i decimali) dall'etichetta della colonna
-        numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
-        return int(numeric_part)
-    except ValueError:
-        # In caso di qualsiasi errore, restituisci un valore intermedio per posizionamento approssimativo
-        return len(col_str)  # Adjust weight as needed
+    numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
+    return int(numeric_part) * weight
 
 def save_combined_data_to_excel(cleaned_data):
     combined_df = pd.DataFrame()
