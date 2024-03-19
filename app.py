@@ -35,9 +35,11 @@ def clean_and_extract_product_data(input_file):
 
 def save_cleaned_data_to_excel(cleaned_data):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         for sheet_name, data_df in cleaned_data.items():
-            data_df.to_excel(writer, sheet_name=sheet_name, index=False)
+            data_df.to_excel(writer, sheet_name=sheet_name)
+        writer.save()
+    output.seek(0)  # Importante per resettare il cursore nel buffer
     return output
 
 # Interfaccia Streamlit
