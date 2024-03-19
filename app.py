@@ -55,6 +55,9 @@ def save_combined_data_to_excel(cleaned_data):
     numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
     numeric_cols.sort(key=lambda x: float(re.sub('[^0-9.]', '', x)) if re.sub('[^0-9.]', '', x) != '' else float('inf'))
     
+    # Stampare le colonne numeriche per debug
+    print("Numeric columns:", numeric_cols)
+    
     # Concatenazione delle colonne non numeriche
     non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
     combined_df = combined_df[non_numeric_cols + numeric_cols]
