@@ -33,26 +33,39 @@ def clean_and_extract_product_data(input_file):
     
     return cleaned_data
 
-def save_cleaned_data_to_excel(cleaned_data):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        for sheet_name, data_df in cleaned_data.items():
-            data_df.to_excel(writer, sheet_name=sheet_name)
-    output.seek(0)  # Sposta il cursore all'inizio del file per il download
-    return output
+def save_combined_data_to_excel(cleaned_data):
+    # Creazione di un nuovo DataFrame con l'intestazione desiderata
+    combined_df = pd.DataFrame(columns=[
+        'Style Image', 'Style Name', 'Style Number', 'Color', 'Color Code',
+        'Color Comment', 'Style Comment', 'Materials', 'Fabrication',
+        'Country of Origin', 'Sugg. Retail (EUR)', 'WholeSale (EUR)',
+        'Item Discount', 'Units', 'Total (EUR)'
+    ])
+
+    # Unione dei dati dei vari fogli
+    for sheet_name, data_df in cleaned_data.items():
+        # Aggiunta dei dati al DataFrame combinato
+        combined_df = pd.concat([combined_df, data_df], ignore_index=True)
+    
+    # Salvataggio in un nuovo file Excel
+    output_combined = BytesIO()
+    with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
+        combined_df.to_excel(writer, index=False)
+    output_combined.seek(0)  # Sposta il cursore all'inizio del file per il download
+    return output_combined
 
 # Interfaccia Streamlit
-st.title('Pulizia e estrazione dati prodotto da Excel')
+st.title('Unione e salvataggio dati prodotto da Excel')
 
 uploaded_file = st.file_uploader("Carica il tuo file Excel", type=["xlsx"])
 if uploaded_file is not None:
     cleaned_data = clean_and_extract_product_data(uploaded_file)
     
-    if st.button('Genera Dati Puliti'):
-        output = save_cleaned_data_to_excel(cleaned_data)
+    if st.button('Unisci e Salva Dati'):
+        output_combined = save_combined_data_to_excel(cleaned_data)
         st.download_button(
-            label="Scarica Dati Puliti come Excel",
-            data=output,
-            file_name="data_puliti.xlsx",
+            label="Scarica Dati Uniti come Excel",
+            data=output_combined,
+            file_name="dati_uniti.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
