@@ -7,7 +7,7 @@ def clean_and_extract_product_data(input_file):
     sheet_names = xls.sheet_names
 
     cleaned_data = {}
-    
+
     for sheet_name in sheet_names:
         df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
         df.dropna(axis=1, how='all', inplace=True)
@@ -20,17 +20,17 @@ def clean_and_extract_product_data(input_file):
             elif "Total:" in row.values:
                 end_index = index
                 break
-        
+
         if start_index is not None and end_index is not None:
             product_data_df = df.iloc[start_index:end_index]
             product_data_df.columns = product_data_df.iloc[0]
             product_data_df = product_data_df[1:]
             product_data_df.reset_index(drop=True, inplace=True)
-            
+
             cleaned_data[sheet_name] = product_data_df
         else:
             st.warning(f"Non è stato possibile trovare i dati degli oggetti acquistati nel foglio: {sheet_name}")
-    
+
     return cleaned_data
 
 def is_numeric_column(col):
@@ -49,8 +49,8 @@ def extract_numeric_part(col):
         numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
         return int(numeric_part)
     except ValueError:
-        # In caso di qualsiasi errore, restituisci un numero molto alto per posizionare la colonna alla fine
-        return float('inf')
+        # In caso di qualsiasi errore, restituisci un valore intermedio per posizionamento approssimativo
+        return len(col_str)  # Adjust weight as needed
 
 def save_combined_data_to_excel(cleaned_data):
     combined_df = pd.DataFrame()
@@ -59,26 +59,26 @@ def save_combined_data_to_excel(cleaned_data):
         data_df['Sheet'] = sheet_name
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
 
-    # Ottiene gli indici delle colonne chiave
+    # Get column indices for reference columns
     try:
-        index_of_country_of_origin = combined_df.columns.get_loc("Country of Origin")
-        index_of_sugg_retail = combined_df.columns.get_loc("Sugg. Retail (EUR)")
+        country_of_origin_idx = combined_df.columns.get_loc("Country of Origin")
+        sugg_retail_idx = combined_df.columns.get_loc("Sugg. Retail (EUR)")
     except KeyError as e:
         raise KeyError(f"Colonna non trovata: {e}")
 
-    # Divide le colonne in tre gruppi: prima, durante (taglie), e dopo
-    fixed_columns_before = combined_df.columns[:index_of_country_of_origin + 1].tolist()
-    size_columns = combined_df.columns[index_of_country_of_origin + 1:index_of_sugg_retail].tolist()
-    fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
+    # Separate columns into three groups
+    fixed_cols_before = combined_df.columns[:country_of_origin_idx + 1].tolist()
+    size_cols = combined_df.columns[country_of_origin_idx + 1:sugg_retail_idx].tolist()
+    fixed_cols_after = combined_df.columns[sugg_retail_idx:].tolist()
 
-    # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
+    # Sort size columns based on numeric part with weight for potential non-numeric characters
+    size_cols.sort(key=lambda col: (extract_numeric_part(str(col)), len(str(col))), reverse=False)
 
-    # Riorganizza il DataFrame con l'ordine desiderato delle colonne
-    ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
+    # Reorder the DataFrame
+    ordered_columns = fixed_cols_before + size_cols + fixed_cols_after
     combined_df = combined_df[ordered_columns]
 
-    # Salvataggio in un nuovo file Excel
+    # Save to Excel
     output_combined = BytesIO()
     with pd.ExcelWriter(output_combined, engine='openpyxl') as writer:
         combined_df.to_excel(writer, index=False)
