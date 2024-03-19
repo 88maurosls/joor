@@ -4,78 +4,55 @@ from io import BytesIO
 
 def clean_and_extract_product_data(input_file):
     xls = pd.ExcelFile(input_file)
-    all_data_frames = []
-    size_columns = set()
+    sheet_names = xls.sheet_names
 
-    for sheet_name in xls.sheet_names:
-        try:
-            df = pd.read_excel(input_file, sheet_name=sheet_name)
+    cleaned_data = {}
+    
+    for sheet_name in sheet_names:
+        df = pd.read_excel(input_file, sheet_name=sheet_name, header=None)
+        df.dropna(axis=1, how='all', inplace=True)
 
-            # Trova indice di "Country of Origin" e "Sugg. Retail (EUR)"
-            country_of_origin_index = None
-            sugg_retail_index = None
-            for row_index, row in df.iterrows():
-                if "Country of Origin" in row.values:
-                    country_of_origin_index = row.values.tolist().index("Country of Origin")
-                if "Sugg. Retail (EUR)" in row.values:
-                    sugg_retail_index = row.values.tolist().index("Sugg. Retail (EUR)")
-                if country_of_origin_index is not None and sugg_retail_index is not None:
-                    break
+        start_index = None
+        end_index = None
+        for index, row in df.iterrows():
+            if start_index is None and "Style Name" in row.values:
+                start_index = index
+            elif "Total:" in row.values:
+                end_index = index
+                break
+        
+        if start_index is not None and end_index is not None:
+            product_data_df = df.iloc[start_index:end_index]
+            product_data_df.columns = product_data_df.iloc[0]
+            product_data_df = product_data_df[1:]
+            product_data_df.reset_index(drop=True, inplace=True)
+            
+            cleaned_data[sheet_name] = product_data_df
+        else:
+            st.warning(f"Non è stato possibile trovare i dati degli oggetti acquistati nel foglio: {sheet_name}")
+    
+    return cleaned_data
 
-            if country_of_origin_index is not None and sugg_retail_index is not None:
-                # Seleziona le colonne tra "Country of Origin" e "Sugg. Retail (EUR)"
-                size_cols = df.columns[country_of_origin_index + 1:sugg_retail_index]
-                size_columns.update(size_cols)
-
-                # Rimuovi le colonne delle taglie dal DataFrame
-                df = df.drop(columns=size_cols)
-
-                # Aggiungi il DataFrame pulito alla lista
-                all_data_frames.append(df)
-            else:
-                st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
-        except Exception as e:
-            st.warning(f"Error processing sheet '{sheet_name}': {str(e)}")
-
-    if not all_data_frames:
-        return pd.DataFrame()
-
-    # Concatena tutti i DataFrame puliti
-    final_df = pd.concat(all_data_frames, ignore_index=True)
-
-    return final_df
-
-    # Prepare final DataFrame
-    final_columns = set(df for df in all_data_frames[0].columns)
-    for sizes in size_columns:
-        final_columns.add(sizes)
-    final_columns = list(final_columns)
-
-    # Concatenate DataFrames
-    final_df = pd.concat(all_data_frames, ignore_index=True)
-    final_df = final_df.reindex(columns=final_columns)
-
-    return final_df
-
-def save_to_excel(final_df):
+def save_cleaned_data_to_excel(cleaned_data):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False)
-    output.seek(0)
+        for sheet_name, data_df in cleaned_data.items():
+            data_df.to_excel(writer, sheet_name=sheet_name)
+    output.seek(0)  # Sposta il cursore all'inizio del file per il download
     return output
 
-# Streamlit UI
-st.title('Excel Data Cleaning and Merging')
+# Interfaccia Streamlit
+st.title('Pulizia e estrazione dati prodotto da Excel')
 
-uploaded_file = st.file_uploader("Upload your Excel file", type="xlsx")
+uploaded_file = st.file_uploader("Carica il tuo file Excel", type=["xlsx"])
 if uploaded_file is not None:
-    final_df = clean_and_extract_product_data(uploaded_file)
+    cleaned_data = clean_and_extract_product_data(uploaded_file)
     
-    if not final_df.empty and st.button('Generate Cleaned Excel'):
-        output = save_to_excel(final_df)
+    if st.button('Genera Dati Puliti'):
+        output = save_cleaned_data_to_excel(cleaned_data)
         st.download_button(
-            label="Download Cleaned Excel",
+            label="Scarica Dati Puliti come Excel",
             data=output,
-            file_name="cleaned_data.xlsx",
+            file_name="data_puliti.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
