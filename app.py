@@ -8,31 +8,34 @@ def clean_and_extract_product_data(input_file):
     size_columns = set()
 
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(input_file, sheet_name=sheet_name)
-        
-        # Trova indice di "Country of Origin" e "Sugg. Retail (EUR)"
-        country_of_origin_index = None
-        sugg_retail_index = None
-        for col_index, col in enumerate(df.columns):
-            if col == "Country of Origin":
-                country_of_origin_index = col_index
-            elif col == "Sugg. Retail (EUR)":
-                sugg_retail_index = col_index
-            elif country_of_origin_index is not None and sugg_retail_index is not None:
-                break
+        try:
+            df = pd.read_excel(input_file, sheet_name=sheet_name)
+            
+            # Trova indice di "Country of Origin" e "Sugg. Retail (EUR)"
+            country_of_origin_index = None
+            sugg_retail_index = None
+            for col_index, col in enumerate(df.columns):
+                if col.strip() == "Country of Origin":
+                    country_of_origin_index = col_index
+                elif col.strip() == "Sugg. Retail (EUR)":
+                    sugg_retail_index = col_index
+                elif country_of_origin_index is not None and sugg_retail_index is not None:
+                    break
 
-        if country_of_origin_index is not None and sugg_retail_index is not None:
-            # Seleziona le colonne tra "Country of Origin" e "Sugg. Retail (EUR)"
-            size_cols = df.columns[country_of_origin_index + 1:sugg_retail_index]
-            size_columns.update(size_cols)
+            if country_of_origin_index is not None and sugg_retail_index is not None:
+                # Seleziona le colonne tra "Country of Origin" e "Sugg. Retail (EUR)"
+                size_cols = df.columns[country_of_origin_index + 1:sugg_retail_index]
+                size_columns.update(size_cols)
 
-            # Rimuovi le colonne delle taglie dal DataFrame
-            df = df.drop(columns=size_cols)
+                # Rimuovi le colonne delle taglie dal DataFrame
+                df = df.drop(columns=size_cols)
 
-            # Aggiungi il DataFrame pulito alla lista
-            all_data_frames.append(df)
-        else:
-            st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
+                # Aggiungi il DataFrame pulito alla lista
+                all_data_frames.append(df)
+            else:
+                st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
+        except Exception as e:
+            st.warning(f"Error processing sheet '{sheet_name}': {str(e)}")
 
     if not all_data_frames:
         return pd.DataFrame()
@@ -41,6 +44,7 @@ def clean_and_extract_product_data(input_file):
     final_df = pd.concat(all_data_frames, ignore_index=True)
 
     return final_df
+
 
 
 
