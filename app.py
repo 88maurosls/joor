@@ -10,6 +10,11 @@ def clean_and_concatenate_product_data(input_file):
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(input_file, sheet_name=sheet_name)
         
+        # Verifica che le colonne necessarie siano presenti nel DataFrame
+        if "Country of Origin" not in df.columns or "Sugg. Retail (EUR)" not in df.columns:
+            st.warning(f"Attenzione: mancano colonne obbligatorie nel foglio '{sheet_name}'. Foglio saltato.")
+            continue
+        
         # Identifica le colonne delle taglie
         start_col = df.columns.get_loc("Country of Origin") + 1
         end_col = df.columns.get_loc("Sugg. Retail (EUR)")
@@ -18,8 +23,11 @@ def clean_and_concatenate_product_data(input_file):
         
         all_data_frames.append(df)
 
+    if not all_data_frames:  # Se non ci sono DataFrame da processare
+        return pd.DataFrame()  # Restituisce un DataFrame vuoto
+
     # Determina tutte le colonne uniche tra i fogli, mantenendo l'ordine
-    unique_columns = list(pd.concat([df.iloc[:, :start_col], df.iloc[:, end_col:]] for df in all_data_frames).columns.drop_duplicates())
+    unique_columns = list(pd.concat([df.iloc[:, :start_col], df.iloc[:, end_col:]] for df in all_data_frames if not df.empty).columns.drop_duplicates())
     size_columns = sorted(list(size_columns))  # Ordina le colonne delle taglie
 
     # Inserisce le colonne delle taglie prima di "Sugg. Retail (EUR)"
@@ -30,6 +38,7 @@ def clean_and_concatenate_product_data(input_file):
     final_df = pd.concat([df.reindex(columns=final_columns) for df in all_data_frames], ignore_index=True)
     
     return final_df
+
 
 def save_to_excel(df):
     output = BytesIO()
