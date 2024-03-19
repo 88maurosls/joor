@@ -26,8 +26,8 @@ uploaded_file = st.file_uploader("Carica il file Excel", type=['xlsx'])
 
 if uploaded_file is not None:
     # Imposta il nome del foglio di lavoro e la colonna in cui cercare le immagini
-    sheet_name = "NomeFoglio"  # Inserisci il nome del foglio di lavoro
-    colonna_immagini = "NomeColonna"  # Inserisci il nome della colonna delle immagini
+    sheet_name = "PO# 15289031"  # Inserisci il nome del foglio di lavoro
+    colonna_immagini = "A"  # Inserisci il nome della colonna delle immagini
     
     # Carica le immagini dal file Excel
     images = carica_immagini_da_excel(uploaded_file, sheet_name, colonna_immagini)
