@@ -24,7 +24,7 @@ def clean_and_extract_product_data(input_file):
             df.columns = df.iloc[0]  # Set headers
             df = df[1:].reset_index(drop=True)
 
-            # Find all columns between 'Country of Origin' and 'Sugg. Retail (EUR)'
+            # Trova le colonne delle taglie comprese tra 'Country of Origin' e 'Sugg. Retail (EUR)'
             if 'Country of Origin' in df.columns and 'Sugg. Retail (EUR)' in df.columns:
                 start_col_index = df.columns.get_loc('Country of Origin') + 1
                 end_col_index = df.columns.get_loc('Sugg. Retail (EUR)')
@@ -37,6 +37,19 @@ def clean_and_extract_product_data(input_file):
 
     if not all_data_frames:
         return pd.DataFrame()
+
+    # Prepara il DataFrame finale
+    final_columns = set(df for df in all_data_frames[0].columns)
+    for sizes in size_columns:
+        final_columns.add(sizes)
+    final_columns = list(final_columns)
+
+    # Concatena i DataFrame
+    final_df = pd.concat(all_data_frames, ignore_index=True)
+    final_df = final_df.reindex(columns=final_columns)
+
+    return final_df
+
 
     # Prepare final DataFrame
     final_columns = set(df for df in all_data_frames[0].columns)
