@@ -33,24 +33,26 @@ def clean_and_extract_product_data(input_file):
     
     return cleaned_data
 
-def save_cleaned_data_to_excel(cleaned_data, output_file_path):
-    with pd.ExcelWriter(output_file_path) as writer:
+def save_cleaned_data_to_excel(cleaned_data):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         for sheet_name, data_df in cleaned_data.items():
             data_df.to_excel(writer, sheet_name=sheet_name, index=False)
-    st.success(f"Dati degli oggetti acquistati salvati con successo in: {output_file_path}")
+    return output
 
 # Interfaccia Streamlit
 st.title('Pulizia e estrazione dati prodotto da Excel')
 
 uploaded_file = st.file_uploader("Carica il tuo file Excel", type=["xlsx"])
 if uploaded_file is not None:
-    # Processa il file caricato
     cleaned_data = clean_and_extract_product_data(uploaded_file)
     
-    # Specifica il percorso del file di output (potrebbe essere migliorato con una dialog di selezione del percorso)
-    output_file_path = 'output_cleaned_data.xlsx'  # Modifica questo percorso se necessario
-    
-    # Salva i dati puliti
-    if st.button('Salva Dati Puliti'):
-        save_cleaned_data_to_excel(cleaned_data, output_file_path)
-
+    if st.button('Genera Dati Puliti'):
+        output = save_cleaned_data_to_excel(cleaned_data)
+        output.seek(0)  # Torna all'inizio del BytesIO stream
+        st.download_button(
+            label="Scarica Dati Puliti come Excel",
+            data=output,
+            file_name="data_puliti.xlsx",
+            mime="application/vnd.ms-excel"
+        )
