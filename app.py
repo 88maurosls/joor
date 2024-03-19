@@ -66,6 +66,7 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
 
 # Funzione per caricare le immagini dal file Excel utilizzando Pillow
 # Funzione per caricare le immagini dal DataFrame pandas utilizzando Pillow
+# Funzione per caricare le immagini dal DataFrame pandas utilizzando Pillow
 def carica_immagini_da_excel(dataframe):
     images = []
     for index, row in dataframe.iterrows():
@@ -77,6 +78,7 @@ def carica_immagini_da_excel(dataframe):
             except Exception as e:
                 st.warning(f"Impossibile caricare l'immagine dalla riga {index}: {e}")
     return images
+
 
 
 # Streamlit UI
