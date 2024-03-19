@@ -41,15 +41,16 @@ def is_numeric_column(col):
         return False
 
 def extract_numeric_part(col):
-    # Questa versione assume che col sia sempre una stringa contenente un numero
-    # o una stringa che può essere convertita in numero.
+    # Assicurati che col sia una stringa
+    col_str = str(col)
     try:
         # Estrai solo i numeri (e il punto per i decimali) dall'etichetta della colonna
-        numeric_part = ''.join(filter(str.isdigit, col)) or '0'
+        numeric_part = ''.join(filter(str.isdigit, col_str)) or '0'
         return int(numeric_part)
     except ValueError:
         # In caso di qualsiasi errore, restituisci un numero molto alto per posizionare la colonna alla fine
         return float('inf')
+
 
 def save_combined_data_to_excel(cleaned_data):
     combined_df = pd.DataFrame()
