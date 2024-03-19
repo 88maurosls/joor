@@ -34,6 +34,7 @@ def clean_and_extract_product_data(input_file):
                 all_data_frames.append(df)
             else:
                 st.warning(f"'Country of Origin' or 'Sugg. Retail (EUR)' not found in sheet: {sheet_name}")
+                st.warning(f"Sheet columns: {df.columns}")
         except Exception as e:
             st.warning(f"Error processing sheet '{sheet_name}': {str(e)}")
 
@@ -44,8 +45,6 @@ def clean_and_extract_product_data(input_file):
     final_df = pd.concat(all_data_frames, ignore_index=True)
 
     return final_df
-
-
 
 
     # Prepare final DataFrame
