@@ -39,12 +39,13 @@ def save_combined_data_to_excel(cleaned_data):
         'Style Image', 'Style Name', 'Style Number', 'Color', 'Color Code',
         'Color Comment', 'Style Comment', 'Materials', 'Fabrication',
         'Country of Origin', 'Sugg. Retail (EUR)', 'WholeSale (EUR)',
-        'Item Discount', 'Units', 'Total (EUR)'
+        'Item Discount', 'Units', 'Total (EUR)', 'Sheet'
     ])
 
     # Unione dei dati dei vari fogli
     for sheet_name, data_df in cleaned_data.items():
         # Aggiunta dei dati al DataFrame combinato
+        data_df['Sheet'] = sheet_name  # Aggiunta della colonna Sheet con il nome del foglio
         combined_df = pd.concat([combined_df, data_df], ignore_index=True)
     
     # Salvataggio in un nuovo file Excel
