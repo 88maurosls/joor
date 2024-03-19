@@ -72,7 +72,7 @@ def save_combined_data_to_excel(cleaned_data):
     fixed_columns_after = combined_df.columns[index_of_sugg_retail:].tolist()
 
     # Preparazione dell'ordinamento delle colonne delle taglie
-    size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
+    #size_columns.sort(key=lambda col: extract_numeric_part(str(col)))
 
     # Riorganizza il DataFrame con l'ordine desiderato delle colonne
     ordered_columns = fixed_columns_before + size_columns + fixed_columns_after
