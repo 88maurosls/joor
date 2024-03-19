@@ -46,13 +46,9 @@ def extract_numeric_part(col):
             numeric_part = float(''.join(filter(lambda x: x.isdigit() or x == '.', col)))  # Estrae solo i numeri dall'etichetta della colonna
             return numeric_part
         except ValueError:
-            print("Errore: Impossibile convertire l'etichetta di colonna in float:", col)
             return float('inf')  # Restituisce float('inf') in caso di errore
     else:
-        print("Errore: Etichetta di colonna non è una stringa:", col)
         return float('inf')  # Restituisce float('inf') se col non è una stringa
-
-
 
 def save_combined_data_to_excel(cleaned_data):
     # Creazione di un nuovo DataFrame con l'intestazione desiderata
@@ -66,7 +62,7 @@ def save_combined_data_to_excel(cleaned_data):
     
     # Ordinamento delle colonne numericamente
     numeric_cols = [col for col in combined_df.columns if is_numeric_column(col)]
-    numeric_cols.sort(key=lambda x: float(extract_numeric_part(x)))
+    numeric_cols.sort(key=lambda x: extract_numeric_part(x))
 
     # Concatenazione delle colonne non numeriche
     non_numeric_cols = [col for col in combined_df.columns if col not in numeric_cols]
