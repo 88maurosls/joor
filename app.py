@@ -38,9 +38,9 @@ def save_cleaned_data_to_excel(cleaned_data):
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         for sheet_name, data_df in cleaned_data.items():
             data_df.to_excel(writer, sheet_name=sheet_name)
-        writer.save()
-    output.seek(0)
+    output.seek(0)  # Sposta il cursore all'inizio del file per il download
     return output
+
 
 # Interfaccia Streamlit
 st.title('Pulizia e estrazione dati prodotto da Excel')
