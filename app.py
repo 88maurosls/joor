@@ -42,14 +42,16 @@ def is_numeric_column(col):
 
 def extract_numeric_part(col):
     if isinstance(col, str):  # Controlla se col è una stringa
-        numeric_part = ''
-        for char in col:
-            if char.isdigit() or char == '.':
-                numeric_part += char
-        return numeric_part
+        try:
+            numeric_part = float(''.join(filter(lambda x: x.isdigit() or x == '.', col)))  # Estrae solo i numeri dall'etichetta della colonna
+            return numeric_part
+        except ValueError:
+            print("Errore: Impossibile convertire l'etichetta di colonna in float:", col)
+            return float('inf')  # Restituisce float('inf') in caso di errore
     else:
         print("Errore: Etichetta di colonna non è una stringa:", col)
-        return ''
+        return float('inf')  # Restituisce float('inf') se col non è una stringa
+
 
 
 def save_combined_data_to_excel(cleaned_data):
