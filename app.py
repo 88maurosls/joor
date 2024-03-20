@@ -44,7 +44,7 @@ def estrai_e_riordina_dati_da_tutti_sheet(xls):
     ]
 
     # Ordine desiderato per le taglie specifiche
-    ordine_taglie_specifiche = ["OS", "ONE SIZE", "UNI", "XXXS", "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
+    ordine_taglie_specifiche = ["OS", "O/S", "ONE SIZE", "UNI", "XXXS", "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
 
     colonne_taglie = set()
     all_extracted_data_frames = []
