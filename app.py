@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import base64
+from io import BytesIO
 
 def trova_indice_intestazione(df):
     for index, row in df.iterrows():
@@ -35,6 +35,7 @@ def estrai_dati_excel(xls, sheet_name):
         df[col] = df[col].fillna(0)  # Sostituisci i valori mancanti con zeri
     
     return df
+
 
 def estrai_e_riordina_dati_da_tutti_sheet(file_path):
     xls = pd.ExcelFile(file_path)
@@ -73,22 +74,29 @@ def estrai_e_riordina_dati_da_tutti_sheet(file_path):
 
     return all_extracted_data
 
-def get_binary_file_downloader_html(bin_file, file_label='File'):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    bin_str = base64.b64encode(data).decode()
-    href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{file_label}">{file_label}</a>'
-    return href
+# Modifica principale qui per gestire l'input e l'output
+def main():
+    st.title("Elaboratore di Excel")
+    
+    uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
+    if uploaded_file is not None:
+        try:
+            xls = pd.ExcelFile(uploaded_file)
+            all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls) # Assicurati che questa funzione gestisca un oggetto ExcelFile
+            
+            # Converti DataFrame in un file Excel in memoria
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
+                # Corpo della funzione per formattazione, se necessario
+            
+            st.success("Elaborazione completata!")
+            st.download_button(label="Scarica Excel Elaborato", 
+                               data=output.getvalue(), 
+                               file_name="excel_elaborato.xlsx", 
+                               mime="application/vnd.ms-excel")
+        except Exception as e:
+            st.error(f"Errore durante l'elaborazione: {e}")
 
-st.title("Caricamento e elaborazione file Excel")
-
-uploaded_file = st.file_uploader("Carica il file Excel", type=["xlsx"])
-
-if uploaded_file is not None:
-    # Lettura e elaborazione dei dati
-    all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(uploaded_file)
-
-    # Rimuovi le colonne delle taglie che hanno solo valori zero
-    first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
-    last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
-    colonne_da_rimuovere = [col for col in all_extracted_data.columns[first_size_col_idx:last_size_col
+if __name__ == "__main__":
+    main()
