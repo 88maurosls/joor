@@ -35,9 +35,10 @@ def estrai_dati_excel(xls, sheet_name):
     
     return df
 
-def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
-    xls = pd.ExcelFile(uploaded_file)
+def estrai_e_riordina_dati_da_tutti_sheet(file_path):
+    xls = pd.ExcelFile(file_path)
     
+    # Assembla l'ordine completo delle colonne
     colonne_fisse_prima = [
         "Style Image", "Style Name", "Style Number", "Color", 
         "Color Code", "Color Comment", "Style Comment", 
@@ -48,22 +49,32 @@ def estrai_e_riordina_dati_da_tutti_sheet(uploaded_file):
         "Units", "Total (EUR)"
     ]
     
+    # Inizializza un insieme vuoto per le colonne delle taglie
     colonne_taglie = set()
     
+    # Identifica tutte le colonne uniche tra tutti i fogli e aggiorna le colonne delle taglie
     for sheet_name in xls.sheet_names:
         df = estrai_dati_excel(xls, sheet_name)
         colonne_taglie.update(set(df.columns) - set(colonne_fisse_prima) - set(colonne_fisse_dopo))
 
+    # Concatena tutti i dati estratti da ogni foglio
     all_extracted_data = pd.concat([estrai_dati_excel(xls, sheet_name) for sheet_name in xls.sheet_names], ignore_index=True)
     
+    # Assembla l'ordine completo delle colonne
     ordine_completo_colonne = colonne_fisse_prima + sorted(list(colonne_taglie)) + colonne_fisse_dopo
 
+    # Sostituisci i valori mancanti con zeri per tutte le colonne di taglia
     for col in colonne_taglie:
         all_extracted_data[col] = all_extracted_data[col].fillna(0)
 
+    # Filtra il DataFrame per rimuovere le righe con contenuto nella colonna "Style Image"
+    all_extracted_data = all_extracted_data[all_extracted_data["Style Image"].isna()]
+
+    # Riordina le colonne
     all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
 
     return all_extracted_data
+
 
 # Streamlit UI
 st.title("Tabulazione JOOR")
