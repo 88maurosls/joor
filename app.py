@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import xlsxwriter
 
 def trova_indice_intestazione(df):
     for index, row in df.iterrows():
@@ -74,7 +75,15 @@ def estrai_e_riordina_dati_da_tutti_sheet(file_path):
 
     return all_extracted_data
 
-# Modifica principale qui per gestire l'input e l'output
+def get_excel_column_letter(col_idx):
+    letter = ''
+    while col_idx > 25:
+        col_idx, remainder = divmod(col_idx, 26)
+        letter = chr(65 + remainder) + letter
+        col_idx -= 1
+    letter = chr(65 + col_idx) + letter
+    return letter
+
 def main():
     st.title("Elaboratore di Excel")
     
@@ -82,13 +91,40 @@ def main():
     if uploaded_file is not None:
         try:
             xls = pd.ExcelFile(uploaded_file)
-            all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls) # Assicurati che questa funzione gestisca un oggetto ExcelFile
+            all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)  # Assicurati che questa funzione gestisca un oggetto ExcelFile
+            
+            # Implementazione delle funzioni mancanti qui
+            
+            # Calcola gli indici delle colonne delle taglie
+            first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
+            last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
+
+            # Identifica e rimuovi le colonne delle taglie con solo valori zero
+            colonne_da_rimuovere = [col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1] if all_extracted_data[col].sum() == 0]
+            all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
+            
+            all_extracted_data.drop(columns=['Style Image'], inplace=True)  # Se desideri rimuovere la colonna 'Style Image'
             
             # Converti DataFrame in un file Excel in memoria
             output = BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
-                # Corpo della funzione per formattazione, se necessario
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
+                
+                # Formattazione Excel aggiuntiva qui
+                worksheet.freeze_panes(1, 0)
+                format_yellow = workbook.add_format({'bg_color': '#FFFF99'})
+                
+                for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
+                    col_letter = get_excel_column_letter(col_idx - 1)  # Ajuste per la conversione zero-based a uno-based
+                    cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
+                    worksheet.conditional_format(cell_range, {
+                        'type': 'cell',
+                        'criteria': '!=',
+                        'value': 0,
+                        'format': format_yellow
+                    })
             
             st.success("Elaborazione completata!")
             st.download_button(label="Scarica Excel Elaborato", 
