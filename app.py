@@ -95,11 +95,6 @@ def main():
             if all(pd.isna(all_extracted_data[col])) or all(all_extracted_data[col] == 0):
                 all_extracted_data.drop(columns=[col], inplace=True)
 
-        # Ordina le colonne delle taglie nell'ordine specificato
-        taglie_ordered = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
-        ordered_taglie_columns = [col for col in taglie_ordered if col in taglie_columns]
-        all_extracted_data = all_extracted_data.reindex(columns=ordered_taglie_columns + taglie_columns)
-
         # Converti DataFrame in un file Excel in memoria
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
