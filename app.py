@@ -83,7 +83,7 @@ def main():
         if 'Style Image' in all_extracted_data.columns:
             all_extracted_data.drop(columns=['Style Image'], inplace=True)
 
-        # Rimuovi le colonne delle taglie che contengono solo valori zero
+        # Rimuovi le colonne delle taglie che contengono solo valori zero o NaN
         taglie_columns = [col for col in all_extracted_data.columns if col not in [
             "Style Image", "Style Name", "Style Number", "Color",
             "Color Code", "Color Comment", "Style Comment",
@@ -92,7 +92,7 @@ def main():
             "Units", "Total (EUR)", "Sheet"
         ]]
         for col in taglie_columns:
-            if (all_extracted_data[col] == 0).all():
+            if all(pd.isna(all_extracted_data[col])) or all(all_extracted_data[col] == 0):
                 all_extracted_data.drop(columns=[col], inplace=True)
 
         # Converti DataFrame in un file Excel in memoria
@@ -132,4 +132,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
