@@ -54,6 +54,7 @@ def estrai_e_riordina_dati_da_tutti_sheet(xls):
     ordine_completo_colonne = colonne_fisse_prima + sorted(list(colonne_taglie)) + colonne_fisse_dopo + ['Sheet']
     all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
     all_extracted_data = all_extracted_data[all_extracted_data["Style Image"].isna()]
+    all_extracted_data.drop(columns=['Style Image'], inplace=True)  # Questa riga rimuove la colonna 'Style Image'
     return all_extracted_data
 
 # La funzione per convertire indice colonna in lettera colonna Excel.
