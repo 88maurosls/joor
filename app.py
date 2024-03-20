@@ -29,7 +29,7 @@ def estrai_dati_excel(xls, sheet_name):
         "Units", "Total (EUR)"
     ]]
     for col in taglie_columns:
-        df[col] = df[col].fillna(0)
+        df[col] = df[col].replace(0, pd.NA) # Cambia qui per usare pd.NA invece di 0
     return df
 
 def estrai_e_riordina_dati_da_tutti_sheet(xls):
