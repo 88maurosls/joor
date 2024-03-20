@@ -72,47 +72,48 @@ def main():
 
     uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
     if uploaded_file is not None:
-        xls = pd.ExcelFile(uploaded_file)
-        all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)
-        
-        first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
-        last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
+        try:
+            xls = pd.ExcelFile(uploaded_file)
+            all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)
+            
+            # Calcola gli indici delle colonne delle taglie
+            first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
+            last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
+            
+            # Rimuovi colonne delle taglie che contengono solo valori zero
+            colonne_da_rimuovere = [
+                col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1]
+                if all_extracted_data[col].sum() == 0
+            ]
+            all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
+            
+            # Converti DataFrame in un file Excel in memoria
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
 
-        colonne_da_rimuovere = [col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1] if all_extracted_data[col].sum() == 0]
-        all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
-        
-        all_extracted_data.drop(columns=['Style Image'], inplace=True)
-        
-        # Converti DataFrame in un file Excel in memoria
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
-            workbook = writer.book
-            worksheet = writer.sheets['Sheet1']
+                # Applica la formattazione condizionale solo alle colonne delle taglie
+                for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
+                    col_letter = get_excel_column_letter(col_idx - 1)
+                    cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
+                    worksheet.conditional_format(cell_range, {
+                        'type': 'cell',
+                        'criteria': '>',
+                        'value': 0,
+                        'format': workbook.add_format({'bg_color': '#FFFF99'})
+                    })
 
-            worksheet.freeze_panes(1, 0)
-            format_yellow = workbook.add_format({'bg_color': '#FFFF99'})
-
-            # Applica la formattazione condizionale solo alle colonne delle taglie
-            for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
-                col_letter = get_excel_column_letter(col_idx - 1)
-                cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
-                worksheet.conditional_format(cell_range, {
-                    'type': 'cell',
-                    'criteria': '>',
-                    'value': 0,
-                    'format': format_yellow
-                })
-            # Non è necessario chiamare writer.save() perché il salvataggio avviene automaticamente all'uscita del blocco with.
-
-        # Configurazione per il download del file Excel elaborato
-        st.success("Elaborazione completata!")
-        st.download_button(
-            label="Scarica Excel Elaborato",
-            data=output.getvalue(),
-            file_name="excel_elaborato.xlsx",
-            mime="application/vnd.ms-excel"
-        )
+            st.success("Elaborazione completata!")
+            st.download_button(
+                label="Scarica Excel Elaborato",
+                data=output.getvalue(),
+                file_name="excel_elaborato.xlsx",
+                mime="application/vnd.ms-excel"
+            )
+        except Exception as e:
+            st.error(f"Si è verificato un errore: {e}")
 
 if __name__ == "__main__":
     main()
