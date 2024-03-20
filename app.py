@@ -70,6 +70,8 @@ def get_excel_column_letter(col_idx):
 def main():
     st.title("Elaboratore di Excel")
 
+    all_extracted_data.drop(columns=['Style Image'], inplace=True)
+
     uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
     if uploaded_file is not None:
         xls = pd.ExcelFile(uploaded_file)
