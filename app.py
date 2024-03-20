@@ -73,17 +73,15 @@ def main():
 
     uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
     if uploaded_file is not None:
+        # Memorizza il nome del file originale senza l'estensione
+        original_file_name = uploaded_file.name.rsplit('.', 1)[0]
+
         xls = pd.ExcelFile(uploaded_file)
         all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)
         
-        # Calcola gli indici delle colonne delle taglie, escludendo "Country of Origin" e "Sugg. Retail (EUR)"
-        first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
-        last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
+        # Rimozione della colonna 'Style Image'
+        all_extracted_data.drop(columns=['Style Image'], inplace=True)
 
-        # Rimuovi le colonne delle taglie che contengono solo valori zero
-        colonne_da_rimuovere = [col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1] if all_extracted_data[col].sum() == 0]
-        all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
-        
         # Converti DataFrame in un file Excel in memoria
         output = BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -94,11 +92,10 @@ def main():
             worksheet.freeze_panes(1, 0)
             format_yellow = workbook.add_format({'bg_color': '#FFFF99'})
 
-            # Calcola nuovamente gli indici delle colonne dopo la rimozione
+            # Applica la formattazione condizionale solo alle colonne delle taglie
             first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
             last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
-
-            # Applica la formattazione condizionale solo alle colonne delle taglie
+            
             for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
                 col_letter = get_excel_column_letter(col_idx)
                 cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
@@ -110,11 +107,13 @@ def main():
                 })
                 
         # Configurazione per il download del file Excel elaborato
+        processed_file_name = f"{original_file_name}_processed.xlsx"  # Aggiungi "_processed" al nome del file
+        
         st.success("Elaborazione completata!")
         st.download_button(
             label="Scarica Excel Elaborato",
             data=output.getvalue(),
-            file_name="excel_elaborato.xlsx",
+            file_name=processed_file_name,  # Usa il nome del file modificato qui
             mime="application/vnd.ms-excel"
         )
 
