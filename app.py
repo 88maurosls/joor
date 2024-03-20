@@ -72,38 +72,41 @@ def main():
 
     uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
     if uploaded_file is not None:
-        try:
-            xls = pd.ExcelFile(uploaded_file)
-            all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)
-            
-            # Calcola gli indici delle colonne delle taglie
+        xls = pd.ExcelFile(uploaded_file)
+        all_extracted_data = estrai_e_riordina_dati_da_tutti_sheet(xls)
+        
+        # Calcola gli indici delle colonne delle taglie, escludendo "Country of Origin" e "Sugg. Retail (EUR)"
+        first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
+        last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
+
+        # Rimuovi le colonne delle taglie che contengono solo valori zero
+        colonne_da_rimuovere = [col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1] if all_extracted_data[col].sum() == 0]
+        all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
+        
+        # Converti DataFrame in un file Excel in memoria
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
+            workbook = writer.book
+            worksheet = writer.sheets['Sheet1']
+
+            worksheet.freeze_panes(1, 0)
+            format_yellow = workbook.add_format({'bg_color': '#FFFF99'})
+
+            # Calcola nuovamente gli indici delle colonne dopo la rimozione
             first_size_col_idx = all_extracted_data.columns.get_loc("Country of Origin") + 1
             last_size_col_idx = all_extracted_data.columns.get_loc("Sugg. Retail (EUR)") - 1
-            
-            # Rimuovi colonne delle taglie che contengono solo valori zero
-            colonne_da_rimuovere = [
-                col for col in all_extracted_data.columns[first_size_col_idx:last_size_col_idx + 1]
-                if all_extracted_data[col].sum() == 0
-            ]
-            all_extracted_data.drop(columns=colonne_da_rimuovere, inplace=True)
-            
-            # Converti DataFrame in un file Excel in memoria
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                all_extracted_data.to_excel(writer, index=False, sheet_name='Sheet1')
-                workbook = writer.book
-                worksheet = writer.sheets['Sheet1']
 
-                # Applica la formattazione condizionale solo alle colonne delle taglie
-                for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
-                    col_letter = get_excel_column_letter(col_idx - 1)
-                    cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
-                    worksheet.conditional_format(cell_range, {
-                        'type': 'cell',
-                        'criteria': '>',
-                        'value': 0,
-                        'format': workbook.add_format({'bg_color': '#FFFF99'})
-                    })
+            # Applica la formattazione condizionale solo alle colonne delle taglie
+            for col_idx in range(first_size_col_idx, last_size_col_idx + 1):
+                col_letter = get_excel_column_letter(col_idx)
+                cell_range = f'{col_letter}2:{col_letter}{len(all_extracted_data) + 1}'
+                worksheet.conditional_format(cell_range, {
+                    'type': 'cell',
+                    'criteria': '>',
+                    'value': 0,
+                    'format': format_yellow
+                })
 
             st.success("Elaborazione completata!")
             st.download_button(
