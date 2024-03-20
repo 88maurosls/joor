@@ -2,6 +2,8 @@ import pandas as pd
 import streamlit as st
 import base64
 import os
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill
 
 def trova_indice_intestazione(df):
     for index, row in df.iterrows():
@@ -86,13 +88,34 @@ def main():
         # Rimozione delle colonne "Style Image" e formattazione delle colonne delle taglie
         all_extracted_data.drop(columns=['Style Image'], inplace=True)
 
+        # Rimuovi le colonne delle taglie che hanno solo valori zero
+        all_extracted_data = all_extracted_data.loc[:, (all_extracted_data != 0).any(axis=0)]
+
         # Converti il DataFrame in HTML e visualizzalo
         st.write(all_extracted_data.to_html(escape=False), unsafe_allow_html=True)
 
         # Download del file elaborato
         output_file_path = "extracted_data.xlsx"
         all_extracted_data.to_excel(output_file_path, index=False)
+        apply_conditional_formatting(output_file_path, all_extracted_data)
         st.markdown(get_binary_file_downloader_html(output_file_path, 'Excel file'), unsafe_allow_html=True)
+
+def apply_conditional_formatting(file_path, df):
+    wb = Workbook()
+    ws = wb.active
+
+    for row in df.iterrows():
+        row_index, row_data = row
+        ws.append(row_data.tolist())
+
+    yellow_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
+
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=ws.max_column):
+        for cell in row:
+            if cell.value != 0:
+                cell.fill = yellow_fill
+
+    wb.save(file_path)
 
 def get_binary_file_downloader_html(bin_file, file_label='File'):
     with open(bin_file, 'rb') as f:
