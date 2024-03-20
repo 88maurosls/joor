@@ -42,16 +42,29 @@ def estrai_e_riordina_dati_da_tutti_sheet(xls):
         "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount",
         "Units", "Total (EUR)"
     ]
+
+    # Ordine desiderato per le taglie specifiche
+    ordine_taglie_specifiche = ["OS", "ONE SIZE", "UNI", "XXXS", "XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]
+
     colonne_taglie = set()
     all_extracted_data_frames = []
+
     for sheet_name in xls.sheet_names:
         if "cancelled" in sheet_name.lower():
             continue
         df = estrai_dati_excel(xls, sheet_name)
         colonne_taglie.update(set(df.columns) - set(colonne_fisse_prima) - set(colonne_fisse_dopo))
         all_extracted_data_frames.append(df.assign(Sheet=sheet_name))
+
     all_extracted_data = pd.concat(all_extracted_data_frames, ignore_index=True)
-    ordine_completo_colonne = colonne_fisse_prima + sorted(list(colonne_taglie)) + colonne_fisse_dopo + ['Sheet']
+
+    # Separazione delle colonne delle taglie in specifiche e altre
+    taglie_specifiche = [col for col in ordine_taglie_specifiche if col in colonne_taglie]
+    altre_taglie = sorted(list(set(colonne_taglie) - set(taglie_specifiche)))
+
+    # L'ordine completo comprende le colonne fisse, seguite dalle taglie specifiche in ordine, 
+    # quindi altre taglie, e infine le colonne fisse finali e 'Sheet'
+    ordine_completo_colonne = colonne_fisse_prima + taglie_specifiche + altre_taglie + colonne_fisse_dopo + ['Sheet']
     all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
     all_extracted_data = all_extracted_data[all_extracted_data["Style Image"].isna()]
     all_extracted_data.drop(columns=['Style Image'], inplace=True)  # Questa riga rimuove la colonna 'Style Image'
