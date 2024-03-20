@@ -87,4 +87,4 @@ if uploaded_file is not None:
     towrite.seek(0)  # Reset del puntatore
 
     # Crea un link per il download del file elaborato
-    st.download_button(label="Scarica Excel elaborato", data=towrite, file_name="dati_elaborati.xlsx", mime="application/vnd.ms-excel
+    st.download_button(label="Scarica Excel elaborato", data=towrite, file_name="dati_elaborati.xlsx", mime="application/vnd.ms-excel")
