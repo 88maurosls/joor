@@ -1,6 +1,7 @@
-import base64
 import pandas as pd
 import streamlit as st
+import base64
+import os
 
 def trova_indice_intestazione(df):
     for index, row in df.iterrows():
@@ -85,8 +86,8 @@ def main():
         # Rimozione delle colonne "Style Image" e formattazione delle colonne delle taglie
         all_extracted_data.drop(columns=['Style Image'], inplace=True)
 
-        # Visualizzazione dei dati
-        st.write(all_extracted_data)
+        # Converti il DataFrame in HTML e visualizzalo
+        st.write(all_extracted_data.to_html(escape=False), unsafe_allow_html=True)
 
         # Download del file elaborato
         output_file_path = "extracted_data.xlsx"
