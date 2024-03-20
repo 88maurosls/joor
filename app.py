@@ -42,10 +42,8 @@ def estrai_e_riordina_dati_da_tutti_sheet(xls):
         "Sugg. Retail (EUR)", "WholeSale (EUR)", "Item Discount",
         "Units", "Total (EUR)"
     ]
-
-    # Ordine desiderato per le taglie specifiche
     ordine_taglie_specifiche = ["OS", "O/S", "ONE SIZE", "UNI", "XXXS", "XXS", "XS", "S", "SM", "M", "ML", "L", "XL", "XXL", "XXXL"]
-
+    
     colonne_taglie = set()
     all_extracted_data_frames = []
 
@@ -58,17 +56,22 @@ def estrai_e_riordina_dati_da_tutti_sheet(xls):
 
     all_extracted_data = pd.concat(all_extracted_data_frames, ignore_index=True)
 
-    # Separazione delle colonne delle taglie in specifiche e altre
+    # Filtra le taglie specifiche e identifica quelle numeriche
     taglie_specifiche = [col for col in ordine_taglie_specifiche if col in colonne_taglie]
-    altre_taglie = sorted(list(set(colonne_taglie) - set(taglie_specifiche)))
+    taglie_numeriche = [col for col in colonne_taglie if col.replace('.','',1).isdigit() and col not in ordine_taglie_specifiche]
+    altre_taglie = sorted(list(set(colonne_taglie) - set(taglie_specifiche) - set(taglie_numeriche)), key=lambda x: (x.isdigit(), x))
+    
+    # Converti e ordina le taglie numeriche
+    taglie_numeriche_ordinate = sorted(taglie_numeriche, key=lambda x: float(x))
 
-    # L'ordine completo comprende le colonne fisse, seguite dalle taglie specifiche in ordine, 
-    # quindi altre taglie, e infine le colonne fisse finali e 'Sheet'
-    ordine_completo_colonne = colonne_fisse_prima + taglie_specifiche + altre_taglie + colonne_fisse_dopo + ['Sheet']
+    # Completa l'ordine delle colonne
+    ordine_completo_colonne = colonne_fisse_prima + taglie_specifiche + taglie_numeriche_ordinate + altre_taglie + colonne_fisse_dopo + ['Sheet']
     all_extracted_data = all_extracted_data.reindex(columns=ordine_completo_colonne)
     all_extracted_data = all_extracted_data[all_extracted_data["Style Image"].isna()]
-    all_extracted_data.drop(columns=['Style Image'], inplace=True)  # Questa riga rimuove la colonna 'Style Image'
+    all_extracted_data.drop(columns=['Style Image'], inplace=True)
+
     return all_extracted_data
+
 
 # La funzione per convertire indice colonna in lettera colonna Excel.
 def get_excel_column_letter(col_idx):
