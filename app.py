@@ -86,6 +86,7 @@ def get_excel_column_letter(col_idx):
 # L'applicazione principale Streamlit.
 def main():
     st.title("JOOR > Excel")
+    st.image('joor-logo-app.jpg')
 
     uploaded_file = st.file_uploader("Trascina qui il tuo file Excel o clicca per caricarlo", type=['xlsx'])
     if uploaded_file is not None:
