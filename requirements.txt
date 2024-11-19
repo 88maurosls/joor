@@ -3,3 +3,4 @@ openpyxl
 xlsxwriter
 Pillow==9.0.0
 streamlit==1.4.0
+protobuf==3.20.*
