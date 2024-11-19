@@ -24,6 +24,10 @@ def estrai_dati_excel(xls, sheet_name):
     df = pd.read_excel(xls, sheet_name=sheet_name, header=header_index)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
+    if 'Color Code' in df.columns:
+        # Converti "Color Code" in stringa per preservare gli zeri iniziali
+        df['Color Code'] = df['Color Code'].apply(lambda x: f"{int(x):03}" if pd.notna(x) else x)
+
     if 'Country of Origin' in df.columns:
         total_row_index = df[df['Country of Origin'].astype(str).str.contains("Total:", na=False)].index
         if not total_row_index.empty:
