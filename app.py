@@ -24,15 +24,19 @@ def estrai_dati_excel(xls, sheet_name):
     df = pd.read_excel(xls, sheet_name=sheet_name, header=header_index)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
+    # Gestione sicura della colonna "Color Code" (se presente)
     if 'Color Code' in df.columns:
-        # Converti "Color Code" in stringa per preservare gli zeri iniziali
-        df['Color Code'] = df['Color Code'].apply(lambda x: f"{int(x):03}" if pd.notna(x) else x)
+        df['Color Code'] = df['Color Code'].apply(
+            lambda x: f"{int(x):03}" if pd.notna(x) and isinstance(x, (int, float)) else x
+        )
 
+    # Rimozione righe con "Total:" in "Country of Origin"
     if 'Country of Origin' in df.columns:
         total_row_index = df[df['Country of Origin'].astype(str).str.contains("Total:", na=False)].index
         if not total_row_index.empty:
             df = df.iloc[:total_row_index[0]]
 
+    # Identificazione delle colonne relative alle taglie
     taglie_columns = [col for col in df.columns if col not in [
         "Style Image", "Style Name", "Style Number", "Color",
         "Color Code", "Color Comment", "Style Comment",
@@ -41,10 +45,12 @@ def estrai_dati_excel(xls, sheet_name):
         "Units", "Total (EUR)"
     ]]
 
+    # Sostituzione di valori 0 con NA nelle colonne delle taglie
     for col in taglie_columns:
         df[col] = df[col].replace(0, pd.NA)
 
     return df
+
 
 
 def estrai_e_riordina_dati_da_tutti_sheet(xls):
